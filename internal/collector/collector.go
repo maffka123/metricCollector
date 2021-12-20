@@ -29,18 +29,18 @@ type Metric struct {
 Prepare and intialize all metrics that are collected in this service.
 see example here: https://github.com/tevjef/go-runtime-metrics/blob/master/collector/collector.go
 */
-func GetAllMetrics() []Metric {
+func GetAllMetrics() []*Metric {
 	memStats := startStats()
-	metricList := []Metric{}
+	metricList := []*Metric{}
 	for _, value := range runtimeMetricNameList {
 
 		m := Metric{Name: value, Type: "gauge"}
 		m.init(memStats)
-		metricList = append(metricList, m)
+		metricList = append(metricList, &m)
 	}
 
-	metricList = append(metricList, Metric{Name: "PollCount", Type: "count", currVal: number{integer: 1, float: 0}})
-	metricList = append(metricList, Metric{Name: "RandomValue", Type: "gouge", currVal: number{integer: rand.Intn(100), float: 0}})
+	metricList = append(metricList, &Metric{Name: "PollCount", Type: "count", currVal: number{integer: 1, float: 0}})
+	metricList = append(metricList, &Metric{Name: "RandomValue", Type: "gouge", currVal: number{integer: rand.Intn(100), float: 0}})
 
 	return metricList
 }

@@ -28,18 +28,11 @@ func main() {
 	pollTicker := time.NewTicker(pollInterval * time.Second)
 	reportTicker := time.NewTicker(reportInterval * time.Second)
 
-	for {
-		go updateMetrics(ctx, pollTicker.C, metricList)
-		go sendAllData(ctx, reportTicker.C, client, metricList)
-		go stopGracefully(ctx, quit, cancel)
-	}
-}
+	go updateMetrics(ctx, pollTicker.C, metricList)
+	go sendAllData(ctx, reportTicker.C, client, metricList)
 
-func stopGracefully(ctx context.Context, quit chan os.Signal, cancel context.CancelFunc) {
 	<-quit
-	defer cancel()
-	fmt.Println("Waiting jobs to finish")
-	time.Sleep(time.Second)
+	cancel()
 }
 
 func initMetrics(client *http.Client) []collector.Metric {
@@ -52,15 +45,18 @@ func initMetrics(client *http.Client) []collector.Metric {
 }
 
 func updateMetrics(ctx context.Context, t <-chan time.Time, metricList []collector.Metric) {
-	select {
-	case <-t:
-		fmt.Println("Updating all metrics")
-		for _, value := range metricList {
-			value.Update()
-			value.Print()
+	for {
+		select {
+		case <-t:
+			fmt.Println("Updating all metrics")
+			for _, value := range metricList {
+				value.Update()
+				value.Print()
+			}
+		case <-ctx.Done():
+			fmt.Errorf("context canceled")
+			break
 		}
-	case <-ctx.Done():
-		fmt.Errorf("context canceled")
 	}
 }
 
@@ -86,15 +82,16 @@ func sendData(client *http.Client, m *collector.Metric) {
 }
 
 func sendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, metricList []collector.Metric) {
-
-	select {
-	case <-t:
-		fmt.Println("Sending all metrics")
-		for _, value := range metricList {
-			sendData(client, &value)
+	for {
+		select {
+		case <-t:
+			fmt.Println("Sending all metrics")
+			for _, value := range metricList {
+				sendData(client, &value)
+			}
+		case <-ctx.Done():
+			fmt.Errorf("context canceled")
+			break
 		}
-	case <-ctx.Done():
-		fmt.Errorf("context canceled")
 	}
-
 }

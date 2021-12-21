@@ -19,7 +19,7 @@ func TestPostHandlerGouge(t *testing.T) {
 	type want struct {
 		applicationType string
 		statusCode      int
-		valueInDb       float64
+		valueInDB       float64
 	}
 	tests := []struct {
 		name    string
@@ -33,7 +33,7 @@ func TestPostHandlerGouge(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				valueInDb:       1,
+				valueInDB:       1,
 			},
 			request: "/update/gouge/RandomValue/1",
 		},
@@ -43,7 +43,7 @@ func TestPostHandlerGouge(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				valueInDb:       2,
+				valueInDB:       2,
 			},
 			request: "/update/gouge/RandomValue/2",
 		},
@@ -60,7 +60,7 @@ func TestPostHandlerGouge(t *testing.T) {
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
 			assert.Equal(t, tt.want.applicationType, result.Header.Get("Application-Type"))
 			q := strings.Split(request.URL.String(), "/")
-			assert.Equal(t, tt.want.valueInDb, db.Gouge[q[len(q)-2]])
+			assert.Equal(t, tt.want.valueInDB, db.Gouge[q[len(q)-2]])
 		})
 	}
 }
@@ -73,7 +73,7 @@ func TestPostHandlerCounter(t *testing.T) {
 	type want struct {
 		applicationType string
 		statusCode      int
-		value_in_db     int64
+		valueInDB       int64
 	}
 	tests := []struct {
 		name    string
@@ -87,7 +87,7 @@ func TestPostHandlerCounter(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				value_in_db:     1,
+				valueInDB:       1,
 			},
 			request: "/update/count/PollCount/1",
 		},
@@ -97,7 +97,7 @@ func TestPostHandlerCounter(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				value_in_db:     3,
+				valueInDB:       3,
 			},
 			request: "/update/count/PollCount/2",
 		},
@@ -114,7 +114,7 @@ func TestPostHandlerCounter(t *testing.T) {
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
 			assert.Equal(t, tt.want.applicationType, result.Header.Get("Application-Type"))
 			q := strings.Split(request.URL.String(), "/")
-			assert.Equal(t, tt.want.value_in_db, db.Counter[q[len(q)-2]])
+			assert.Equal(t, tt.want.valueInDB, db.Counter[q[len(q)-2]])
 		})
 	}
 }

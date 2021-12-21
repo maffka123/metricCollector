@@ -11,7 +11,7 @@ import (
 	"syscall"
 )
 
-var db = storage.NewInMemoryDb()
+var db = storage.NewInMemoryDB()
 
 func main() {
 

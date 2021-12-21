@@ -22,7 +22,7 @@ func main() {
 
 	// To be able to cancel tasks, make ctx and signal handler
 	ctx, cancel := context.WithCancel(context.Background())
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	//starting list of metrices
@@ -62,7 +62,7 @@ func updateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 				value.Print()
 			}
 		case <-ctx.Done():
-			fmt.Errorf("context canceled")
+			fmt.Println("context canceled")
 		}
 	}
 }
@@ -101,7 +101,7 @@ func sendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, m
 				sendData(client, value)
 			}
 		case <-ctx.Done():
-			fmt.Errorf("context canceled")
+			fmt.Println("context canceled")
 		}
 	}
 }

@@ -12,14 +12,14 @@ import (
 )
 
 func TestPostHandlerGouge(t *testing.T) {
-	db := storage.NewInMemoryDb()
+	db := storage.NewInMemoryDB()
 	type args struct {
 		db storage.Repositories
 	}
 	type want struct {
 		applicationType string
 		statusCode      int
-		value_in_db     float64
+		valueInDb       float64
 	}
 	tests := []struct {
 		name    string
@@ -33,7 +33,7 @@ func TestPostHandlerGouge(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				value_in_db:     1,
+				valueInDb:       1,
 			},
 			request: "/update/gouge/RandomValue/1",
 		},
@@ -43,7 +43,7 @@ func TestPostHandlerGouge(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				value_in_db:     2,
+				valueInDb:       2,
 			},
 			request: "/update/gouge/RandomValue/2",
 		},
@@ -55,17 +55,18 @@ func TestPostHandlerGouge(t *testing.T) {
 			h := http.HandlerFunc(PostHandlerGouge(tt.args.db))
 			h.ServeHTTP(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
 			assert.Equal(t, tt.want.applicationType, result.Header.Get("Application-Type"))
 			q := strings.Split(request.URL.String(), "/")
-			assert.Equal(t, tt.want.value_in_db, db.Gouge[q[len(q)-2]])
+			assert.Equal(t, tt.want.valueInDb, db.Gouge[q[len(q)-2]])
 		})
 	}
 }
 
 func TestPostHandlerCounter(t *testing.T) {
-	db := storage.NewInMemoryDb()
+	db := storage.NewInMemoryDB()
 	type args struct {
 		db storage.Repositories
 	}
@@ -108,6 +109,7 @@ func TestPostHandlerCounter(t *testing.T) {
 			h := http.HandlerFunc(PostHandlerCounter(tt.args.db))
 			h.ServeHTTP(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
 			assert.Equal(t, tt.want.applicationType, result.Header.Get("Application-Type"))

@@ -14,7 +14,7 @@ func PostHandlerGouge(db storage.Repositories) http.HandlerFunc {
 			http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		}
 		q := strings.Split(r.URL.String(), "/")
-		val, err := strconv.ParseFloat(q[len(q)-1], 2)
+		val, err := strconv.ParseFloat(q[len(q)-1], 64)
 		if err != nil {
 			fmt.Println(err)
 		}

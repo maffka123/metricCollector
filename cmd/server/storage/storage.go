@@ -6,23 +6,23 @@ type Repositories interface {
 	InsertCounter(name string, val int64)
 }
 
-type InMemoryDb struct {
+type InMemoryDB struct {
 	Gouge   map[string]float64
 	Counter map[string]int64
 }
 
-func (db *InMemoryDb) Connect() Repositories {
+func (db *InMemoryDB) Connect() Repositories {
 	return db
 }
 
-func (db *InMemoryDb) InsertGouge(name string, val float64) {
+func (db *InMemoryDB) InsertGouge(name string, val float64) {
 	db.Gouge[name] = val
 }
 
-func (db *InMemoryDb) InsertCounter(name string, val int64) {
+func (db *InMemoryDB) InsertCounter(name string, val int64) {
 	db.Counter[name] += val
 }
 
-func NewInMemoryDb() *InMemoryDb {
-	return &InMemoryDb{Gouge: map[string]float64{}, Counter: map[string]int64{}}
+func NewInMemoryDB() *InMemoryDB {
+	return &InMemoryDB{Gouge: map[string]float64{}, Counter: map[string]int64{}}
 }

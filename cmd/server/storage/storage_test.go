@@ -28,7 +28,7 @@ func TestInMemoryDb_InsertCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := &InMemoryDb{
+			db := &InMemoryDB{
 				Gouge:   tt.fields.Gouge,
 				Counter: tt.fields.Counter,
 			}
@@ -60,7 +60,7 @@ func TestInMemoryDb_InsertGouge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := &InMemoryDb{
+			db := &InMemoryDB{
 				Gouge:   tt.fields.Gouge,
 				Counter: tt.fields.Counter,
 			}

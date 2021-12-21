@@ -61,6 +61,7 @@ func (m *Metric) init(memStats *runtime.MemStats) {
 	runtimeMetricByName(m, memStats)
 }
 
+//More for debugging print what is inside metric
 func (m *Metric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
 
 func (m *Metric) Update() {

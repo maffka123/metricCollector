@@ -63,9 +63,7 @@ func updateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 
 func sendData(client *http.Client, m *collector.Metric) {
 	url := fmt.Sprintf("%s/update/%s/%s/%d", endpoint, m.Type, m.Name, m.Change.Value())
-	if m.Change.Value() != 0 {
-		fmt.Println(url)
-	}
+	fmt.Println(url)
 
 	request, err := http.NewRequest(http.MethodPost, url, nil)
 	request.Header.Add("application-type", "text/plain")

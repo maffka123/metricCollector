@@ -147,7 +147,7 @@ func TestGetHandlerValue(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  200,
-				valueInDB:   "1.000000",
+				valueInDB:   "1.000",
 			},
 			request: "/value/gauge/Alloc",
 		},
@@ -160,6 +160,16 @@ func TestGetHandlerValue(t *testing.T) {
 				valueInDB:   "3",
 			},
 			request: "/value/counter/PollCount",
+		},
+		{
+			name: "count_unknown",
+			args: args{db: db},
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  404,
+				valueInDB:   "SomeCount does not exist in Counter db\n",
+			},
+			request: "/value/counter/SomeCount",
 		},
 	}
 	for _, tt := range tests {

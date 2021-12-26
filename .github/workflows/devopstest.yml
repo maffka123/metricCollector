@@ -46,9 +46,6 @@ jobs:
         run: |
           cd cmd/agent
           go build -o agent
-          cd ../..
-          cd cmd/server
-          go build -o server
 
 # Соглашение:
 #   Во всех заданиях, нужно обрабатывать все пограничные случаи и негатив-кейсы.

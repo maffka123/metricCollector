@@ -57,10 +57,10 @@ func GetHandlerValue(db storage.Repositories) http.HandlerFunc {
 				rw.Header().Set("Content-Type", "text/plain")
 				rw.WriteHeader(http.StatusOK)
 
-				payload := fmt.Sprintf("%f", db.ValueFromGouge(metricName))
+				payload := fmt.Sprintf("%.3f", db.ValueFromGouge(metricName))
 				rw.Write([]byte(payload))
 			} else {
-				http.Error(rw, metricName+" does not exist in Gouge db", http.StatusBadRequest)
+				http.Error(rw, metricName+" does not exist in Gouge db", http.StatusNotFound)
 			}
 		} else if metricType == "counter" {
 			if db.NameInCounter(metricName) {
@@ -71,10 +71,10 @@ func GetHandlerValue(db storage.Repositories) http.HandlerFunc {
 				rw.Write([]byte(payload))
 
 			} else {
-				http.Error(rw, metricName+" does not exist in Counter db", http.StatusBadRequest)
+				http.Error(rw, metricName+" does not exist in Counter db", http.StatusNotFound)
 			}
 		} else {
-			http.Error(rw, metricType+" does not exist in db", http.StatusBadRequest)
+			http.Error(rw, metricType+" does not exist in db", http.StatusNotFound)
 		}
 
 	}

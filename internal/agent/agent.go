@@ -98,7 +98,7 @@ func simpleBackoff(f sendDataFunc, c *http.Client, m *collector.Metric) error {
 			break
 		}
 		fmt.Printf("Backing off number %d\n", i+1)
-		time.Sleep(time.Second * delay * time.Duration(i+1))
+		time.Sleep(delay * time.Duration(i+1))
 	}
 	return err
 }

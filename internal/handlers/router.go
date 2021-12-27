@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/maffka123/metricCollector/cmd/server/storage"
+	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 func MetricRouter(db storage.Repositories) chi.Router {

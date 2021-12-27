@@ -2,12 +2,24 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/maffka123/metricCollector/cmd/server/storage"
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/maffka123/metricCollector/internal/handlers/templates"
+	"github.com/maffka123/metricCollector/internal/storage"
 )
+
+type metricsList struct {
+	NameValue string
+}
+
+type allMetricsList struct {
+	Counter []metricsList
+	Gauge   []metricsList
+}
 
 //PostHandlerGouge processes POST request to add/replace value of a gouge metric
 func PostHandlerGouge(db storage.Repositories) http.HandlerFunc {
@@ -83,9 +95,31 @@ func GetHandlerValue(db storage.Repositories) http.HandlerFunc {
 //GetAllNames processes GET request to return all available metrics
 func GetAllNames(db storage.Repositories) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+
+		tmpl := template.Must(template.New("MetricsList").Parse(templates.MetricTemplate))
+		var aml allMetricsList
+		mlc := []metricsList{}
+		mlg := []metricsList{}
+
 		rw.WriteHeader(http.StatusOK)
-		rw.Header().Set("Content-Type", "application/json")
-		payload := db.GetAllNames()
-		rw.Write(payload)
+		rw.Header().Set("Content-Type", "text/html")
+		listCounter, listGouge := db.SelectAll()
+
+		for _, v := range listCounter {
+			mlc = append(mlc, metricsList{NameValue: v})
+
+		}
+
+		for _, v := range listGouge {
+			mlg = append(mlg, metricsList{NameValue: v})
+
+		}
+
+		aml = allMetricsList{
+			Counter: mlc,
+			Gauge:   mlg,
+		}
+
+		tmpl.Execute(rw, aml)
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/maffka123/metricCollector/cmd/server/storage"
+	"github.com/maffka123/metricCollector/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,6 +1,6 @@
 package storage
 
-import "encoding/json"
+import "fmt"
 
 type Repositories interface {
 	Connect() Repositories
@@ -10,7 +10,7 @@ type Repositories interface {
 	NameInGouge(s string) bool
 	ValueFromCounter(s string) int64
 	ValueFromGouge(s string) float64
-	GetAllNames() []byte
+	SelectAll() ([]string, []string)
 }
 
 type InMemoryDB struct {
@@ -56,28 +56,17 @@ func NewInMemoryDB() *InMemoryDB {
 	return &InMemoryDB{Gouge: map[string]float64{}, Counter: map[string]int64{}}
 }
 
-func (db *InMemoryDB) GetAllNames() []byte {
-	keysCounter := make([]string, len(db.Counter))
-	keysGouge := make([]string, len(db.Gouge))
+func (db *InMemoryDB) SelectAll() ([]string, []string) {
+	var listCounter []string
+	var listGouge []string
 
-	i := 0
-	for k := range db.Counter {
-		keysCounter[i] = k
-		i++
+	for k, v := range db.Counter {
+		listCounter = append(listCounter, fmt.Sprintf("[%s]: [%d]\n", k, v))
 	}
 
-	i = 0
-	for k := range db.Gouge {
-		keysGouge[i] = k
-		i++
+	for k, v := range db.Gouge {
+		listGouge = append(listGouge, fmt.Sprintf("[%s]: [%3.f]\n", k, v))
 	}
 
-	allNames := map[string][]string{
-		"counter": keysCounter,
-		"gauge":   keysGouge,
-	}
-
-	allNamesJSON, _ := json.Marshal(allNames)
-
-	return allNamesJSON
+	return listCounter, listGouge
 }

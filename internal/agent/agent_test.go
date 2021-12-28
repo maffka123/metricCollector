@@ -1,30 +1,50 @@
 package agent
 
 import (
+	"errors"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/maffka123/metricCollector/internal/collector"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_simpleBackoff(t *testing.T) {
+	delay = 1 * time.Second //s
+	client := &http.Client{}
+	timer := time.NewTimer(time.Second)
+
+	m := &collector.Metric{Name: "PollCount", Type: "counter"}
+	fErr := sendDataFunc(func(c *http.Client, m *collector.Metric) error {
+		return errors.New("some error")
+	})
+	fNoerr := sendDataFunc(func(c *http.Client, m *collector.Metric) error {
+		select {
+		case <-timer.C:
+			return nil
+		default:
+			return errors.New("some error")
+		}
+	})
+
 	type args struct {
 		f sendDataFunc
-		c *http.Client
-		m *collector.Metric
 	}
 	tests := []struct {
 		name    string
 		args    args
-		wantErr bool
+		wantErr error
 	}{
-		// TODO: Add test cases.
+		{name: "test1", args: args{f: fErr}, wantErr: errors.New("some error")},
+		{name: "test2", args: args{f: fNoerr}, wantErr: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := simpleBackoff(tt.args.f, tt.args.c, tt.args.m); (err != nil) != tt.wantErr {
-				t.Errorf("simpleBackoff() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			timer.Reset(delay)
+			err := simpleBackoff(tt.args.f, client, m)
+			assert.Equal(t, tt.wantErr, err)
+
 		})
 	}
 }

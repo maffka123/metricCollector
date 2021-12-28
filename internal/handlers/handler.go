@@ -101,8 +101,8 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 		mlc := []metricsList{}
 		mlg := []metricsList{}
 
-		rw.WriteHeader(http.StatusOK)
 		rw.Header().Set("Content-Type", "text/html")
+		rw.WriteHeader(http.StatusOK)
 		listCounter, listGouge := db.SelectAll()
 
 		for _, v := range listCounter {

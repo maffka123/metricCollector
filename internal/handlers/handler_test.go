@@ -192,3 +192,53 @@ func TestGetHandlerValue(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAllNames(t *testing.T) {
+	db := storage.NewInMemoryDB()
+	db.InsertCounter("PollCount", 3)
+	db.InsertGouge("Alloc", 1.5)
+	type args struct {
+		db storage.Repositories
+	}
+	type want struct {
+		contentType string
+		statusCode  int
+		html        string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    want
+		request string
+	}{
+		{
+			name: "allmetrics_test1",
+			args: args{db: db},
+			want: want{
+				contentType: "text/html",
+				statusCode:  200,
+				html:        "<html>\n    <head>\n    <title>(/^▽^)/</title>\n    </head>\n    <body>\n        <h1>Counter</h1>>\n    \n            <li>[PollCount]: [3]\n</li>\n    \n\n    <h1>Gauge</h1>>\n    \n    <li>[Alloc]: [  2]\n</li>\n\n\n    </body>\n</html>",
+			},
+			request: "/",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := MetricRouter(db)
+
+			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, request)
+			result := w.Result()
+			defer result.Body.Close()
+
+			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
+
+			fmt.Println(w.Body.String())
+
+			assert.Equal(t, tt.want.html, w.Body.String())
+		})
+	}
+}

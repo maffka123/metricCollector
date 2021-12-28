@@ -11,9 +11,9 @@ import (
 )
 
 func Test_simpleBackoff(t *testing.T) {
-	delay = 1 * time.Second //s
+	delay = 10 * time.Millisecond //s
 	client := &http.Client{}
-	timer := time.NewTimer(time.Second)
+	timer := time.NewTimer(delay)
 
 	m := &collector.Metric{Name: "PollCount", Type: "counter"}
 	fErr := sendDataFunc(func(c *http.Client, m *collector.Metric) error {

@@ -217,7 +217,7 @@ func TestGetAllNames(t *testing.T) {
 			want: want{
 				contentType: "text/html",
 				statusCode:  200,
-				html:        "<html>\n    <head>\n    <title>(/^▽^)/</title>\n    </head>\n    <body>\n        <h1>Counter</h1>>\n    \n            <li>[PollCount]: [3]\n</li>\n    \n\n    <h1>Gauge</h1>>\n    \n    <li>[Alloc]: [  2]\n</li>\n\n\n    </body>\n</html>",
+				html:        "<html>\n    <head>\n    <title>(/^▽^)/</title>\n    </head>\n    <body>\n        <h1>Counter</h1>>\n    \n            <li>[PollCount]: [3]\n</li>\n    \n\n    <h1>Gauge</h1>>\n    \n    <li>[Alloc]: [1.500]\n</li>\n\n\n    </body>\n</html>",
 			},
 			request: "/",
 		},

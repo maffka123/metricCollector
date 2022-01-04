@@ -42,3 +42,45 @@ func TestMetric_Update(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAllMetrics(t *testing.T) {
+	tests := []struct {
+		name string
+		want []*Metric
+	}{
+		{name: "test1", want: []*Metric{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetAllMetrics()
+			assert.IsType(t, tt.want, got)
+			assert.Equal(t, 28, len(got))
+		})
+	}
+}
+
+func TestMetric_init(t *testing.T) {
+	memStats := startStats()
+	type fields struct {
+		Name string
+		Type string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{name: "test1", fields: fields{Name: "Alloc", Type: "gauge"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Metric{
+				Name: tt.fields.Name,
+				Type: tt.fields.Type,
+			}
+			m.init(memStats)
+			assert.Equal(t, 0, m.prevVal.integer)
+			assert.Equal(t, 0, m.Change.integer)
+			assert.NotEqual(t, 0, m.currVal.integer)
+		})
+	}
+}

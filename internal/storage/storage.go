@@ -65,7 +65,7 @@ func (db *InMemoryDB) SelectAll() ([]string, []string) {
 	}
 
 	for k, v := range db.Gouge {
-		listGouge = append(listGouge, fmt.Sprintf("[%s]: [%3.f]\n", k, v))
+		listGouge = append(listGouge, fmt.Sprintf("[%s]: [%.3f]\n", k, v))
 	}
 
 	return listCounter, listGouge

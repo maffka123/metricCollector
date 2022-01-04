@@ -48,3 +48,23 @@ func Test_simpleBackoff(t *testing.T) {
 		})
 	}
 }
+
+func Test_sendData(t *testing.T) {
+	client := &http.Client{}
+	type args struct {
+		m *collector.Metric
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gouge"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := sendData(client, tt.args.m)
+			assert.Error(t, err)
+		})
+	}
+}

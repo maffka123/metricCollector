@@ -23,6 +23,7 @@ func MetricRouter(db storage.Repositories) chi.Router {
 		r.Post("/*", func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "501 - Metric type unknown!", http.StatusNotImplemented)
 		})
+		r.Post("/", Conveyor(PostHandlerUpdate(db), checkForJson, checkForPost))
 
 	})
 

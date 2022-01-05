@@ -24,6 +24,29 @@ func (n *number) Value() any {
 
 }
 
+func (n *number) FloatValue() *float64 {
+	var f float64
+	if n.integer != 0 {
+		f = float64(n.integer)
+	} else if n.float != 0.0 {
+		f = n.float
+	} else {
+		f = 0.0
+	}
+	return &f
+
+}
+
+func (n *number) IntValue() *int64 {
+	var i int64
+	if n.integer != 0 {
+		i = int64(n.integer)
+	} else {
+		i = 0
+	}
+	return &i
+}
+
 func (n *number) diff(m *number) number {
 	if n.integer != 0 {
 		return number{integer: n.integer - m.integer, float: 0}

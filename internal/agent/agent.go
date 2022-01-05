@@ -1,12 +1,13 @@
 package agent
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/maffka123/metricCollector/internal/collector"
 	"net/http"
 	"os"
-	"reflect"
 	"time"
 )
 
@@ -21,7 +22,7 @@ func InitMetrics(client *http.Client) []*collector.Metric {
 	for _, value := range metricList {
 		value.Print()
 		//sendData(client, value)
-		err := simpleBackoff(sendData, client, value)
+		err := simpleBackoff(sendJsonData, client, value)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -45,17 +46,18 @@ func UpdateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 	}
 }
 
-//sendData sends metric to the server.
-func sendData(client *http.Client, m *collector.Metric) error {
-	var url string
-	if reflect.TypeOf(m.Change.Value()).Kind() == reflect.Int64 || reflect.TypeOf(m.Change.Value()).Kind() == reflect.Int {
-		url = fmt.Sprintf("%s/update/%s/%s/%d", endpoint, m.Type, m.Name, m.Change.Value())
-	} else {
-		url = fmt.Sprintf("%s/update/%s/%s/%f", endpoint, m.Type, m.Name, m.Change.Value())
+//sendJsonData sends metric in json format to the server.
+func sendJsonData(client *http.Client, m *collector.Metric) error {
+	url := fmt.Sprintf("%s/update/", endpoint)
+
+	metricToSend, err := json.Marshal(m)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, nil)
-	request.Header.Add("application-type", "text/plain")
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(metricToSend))
+	request.Header.Add("Content-Type", "application/json")
 
 	if err != nil {
 		fmt.Println(err)
@@ -81,7 +83,7 @@ func SendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, m
 		case <-t:
 			fmt.Println("Sending all metrics")
 			for _, value := range metricList {
-				simpleBackoff(sendData, client, value)
+				simpleBackoff(sendJsonData, client, value)
 			}
 		case <-ctx.Done():
 			fmt.Println("context canceled")

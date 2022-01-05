@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/maffka123/metricCollector/internal/handlers/templates"
+	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
@@ -121,5 +123,28 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 		}
 
 		tmpl.Execute(rw, aml)
+	}
+}
+
+func PostHandlerUpdate(db storage.Repositories) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var m models.Metrics
+		err := decoder.Decode(&m)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("400 - Metric json cannot be decoded: %s", err), http.StatusBadRequest)
+			return
+		}
+		if m.MType == "counter" {
+			db.InsertCounter(m.ID, *m.Delta)
+		} else {
+			db.InsertGouge(m.ID, *m.Value)
+		}
+
+		w.Header().Set("application-type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok}`))
+		fmt.Printf("Got metrich: %s\n", m.ID)
 	}
 }

@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -239,6 +242,57 @@ func TestGetAllNames(t *testing.T) {
 			fmt.Println(w.Body.String())
 
 			assert.Equal(t, tt.want.html, w.Body.String())
+		})
+	}
+}
+
+func TestPostHandlerUpdate(t *testing.T) {
+	f := float64(1)
+	db := storage.NewInMemoryDB()
+	type args struct {
+		db storage.Repositories
+	}
+	type want struct {
+		applicationType string
+		statusCode      int
+		valueInDB       float64
+	}
+	type request struct {
+		request string
+		body    models.Metrics
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    want
+		request request
+	}{
+		{
+			name: "gauge",
+			args: args{db: db},
+			want: want{
+				applicationType: "text/plain",
+				statusCode:      200,
+				valueInDB:       1,
+			},
+			request: request{request: "/update/", body: models.Metrics{ID: "Alloc", MType: "gauge", Value: &f}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := MetricRouter(db)
+			body, _ := json.Marshal(tt.request.body)
+			request := httptest.NewRequest(http.MethodPost, tt.request.request, bytes.NewBuffer(body))
+			request.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, request)
+			result := w.Result()
+			defer result.Body.Close()
+
+			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.want.applicationType, result.Header.Get("Application-Type"))
+			assert.Equal(t, tt.want.valueInDB, db.Gouge[tt.request.body.ID])
 		})
 	}
 }

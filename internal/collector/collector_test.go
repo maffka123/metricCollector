@@ -1,8 +1,10 @@
 package collector
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,6 +83,36 @@ func TestMetric_init(t *testing.T) {
 			assert.Equal(t, 0, m.prevVal.integer)
 			assert.Equal(t, 0, m.Change.integer)
 			assert.NotEqual(t, 0, m.currVal.integer)
+		})
+	}
+}
+
+func TestMetric_MarshalJSON(t *testing.T) {
+	f := float64(1)
+	type fields struct {
+		Name   string
+		Change number
+		Type   string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   models.Metrics
+	}{
+		{name: "test1", fields: fields{Name: "Alloc", Change: number{integer: 1}, Type: "gauge"},
+			want: models.Metrics{ID: "Alloc", MType: "gauge", Value: &f}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Metric{
+				Name:   tt.fields.Name,
+				Change: tt.fields.Change,
+				Type:   tt.fields.Type,
+			}
+			got, err := m.MarshalJSON()
+			assert.NoError(t, err)
+			want, err := json.Marshal(tt.want)
+			assert.Equal(t, got, want)
 		})
 	}
 }

@@ -170,11 +170,11 @@ func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		mJson, err := json.Marshal(m)
+		mJSON, err := json.Marshal(m)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		w.Write([]byte(mJson))
+		w.Write([]byte(mJSON))
 	}
 }

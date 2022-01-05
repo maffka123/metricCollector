@@ -22,7 +22,7 @@ func InitMetrics(client *http.Client) []*collector.Metric {
 	for _, value := range metricList {
 		value.Print()
 		//sendData(client, value)
-		err := simpleBackoff(sendJsonData, client, value)
+		err := simpleBackoff(sendJSONData, client, value)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -46,8 +46,8 @@ func UpdateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 	}
 }
 
-//sendJsonData sends metric in json format to the server.
-func sendJsonData(client *http.Client, m *collector.Metric) error {
+//sendJSONData sends metric in json format to the server.
+func sendJSONData(client *http.Client, m *collector.Metric) error {
 	url := fmt.Sprintf("%s/update/", endpoint)
 
 	metricToSend, err := json.Marshal(m)
@@ -83,7 +83,7 @@ func SendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, m
 		case <-t:
 			fmt.Println("Sending all metrics")
 			for _, value := range metricList {
-				simpleBackoff(sendJsonData, client, value)
+				simpleBackoff(sendJSONData, client, value)
 			}
 		case <-ctx.Done():
 			fmt.Println("context canceled")

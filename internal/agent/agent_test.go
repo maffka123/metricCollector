@@ -63,7 +63,7 @@ func Test_sendData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := sendJsonData(client, tt.args.m)
+			err := sendJSONData(client, tt.args.m)
 			assert.Error(t, err)
 		})
 	}

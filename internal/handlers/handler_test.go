@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/maffka123/metricCollector/internal/models"
+	"github.com/maffka123/metricCollector/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/maffka123/metricCollector/internal/models"
-	"github.com/maffka123/metricCollector/internal/storage"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPostHandlerGouge(t *testing.T) {
@@ -247,7 +247,7 @@ func TestGetAllNames(t *testing.T) {
 }
 
 func TestPostHandlerUpdate(t *testing.T) {
-	f := float64(1)
+	f := float64(1.5)
 	db := storage.NewInMemoryDB()
 	type args struct {
 		db storage.Repositories
@@ -273,13 +273,14 @@ func TestPostHandlerUpdate(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				valueInDB:       1,
+				valueInDB:       1.5,
 			},
 			request: request{request: "/update/", body: models.Metrics{ID: "Alloc", MType: "gauge", Value: &f}},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			r := MetricRouter(db)
 			body, _ := json.Marshal(tt.request.body)
 			request := httptest.NewRequest(http.MethodPost, tt.request.request, bytes.NewBuffer(body))
@@ -293,6 +294,60 @@ func TestPostHandlerUpdate(t *testing.T) {
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
 			assert.Equal(t, tt.want.applicationType, result.Header.Get("Application-Type"))
 			assert.Equal(t, tt.want.valueInDB, db.Gouge[tt.request.body.ID])
+		})
+	}
+}
+
+func TestPostHandlerReturn(t *testing.T) {
+	f := float64(1.5)
+	db := storage.NewInMemoryDB()
+	type args struct {
+		db storage.Repositories
+	}
+	type want struct {
+		applicationType string
+		statusCode      int
+		json            models.Metrics
+	}
+	type request struct {
+		request string
+		body    models.Metrics
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    want
+		request request
+	}{
+		{
+			name: "gauge",
+			args: args{db: db},
+			want: want{
+				applicationType: "application/json",
+				statusCode:      200,
+				json:            models.Metrics{ID: "Alloc", MType: "gauge", Value: &f},
+			},
+			request: request{request: "/value/", body: models.Metrics{ID: "Alloc", MType: "gauge"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db.InsertGouge("Alloc", float64(1.5))
+			r := MetricRouter(db)
+			body, _ := json.Marshal(tt.request.body)
+			request := httptest.NewRequest(http.MethodPost, tt.request.request, bytes.NewBuffer(body))
+			request.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, request)
+			result := w.Result()
+			defer result.Body.Close()
+
+			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.want.applicationType, result.Header.Get("Content-Type"))
+			want, _ := json.Marshal(tt.want.json)
+			bodyBytes, _ := io.ReadAll(result.Body)
+			assert.Equal(t, want, bodyBytes)
 		})
 	}
 }

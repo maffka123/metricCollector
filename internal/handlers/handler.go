@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -146,5 +147,34 @@ func PostHandlerUpdate(db storage.Repositories) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
 		fmt.Printf("Got metrich: %s\n", m.ID)
+	}
+}
+
+func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var m models.Metrics
+		err := decoder.Decode(&m)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("400 - Metric json cannot be decoded: %s", err), http.StatusBadRequest)
+			return
+		}
+		if m.MType == "counter" {
+			r := db.ValueFromCounter(m.ID)
+			m.Delta = &r
+		} else {
+			r := db.ValueFromGouge(m.ID)
+			m.Value = &r
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		mJson, err := json.Marshal(m)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		w.Write([]byte(mJson))
 	}
 }

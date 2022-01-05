@@ -28,7 +28,7 @@ func checkForPost(next http.Handler) http.HandlerFunc {
 	})
 }
 
-func checkForJson(next http.Handler) http.HandlerFunc {
+func checkForJSON(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Type") != "application/json" {
 			http.Error(w, "This endpoint accepts only jsons", http.StatusMethodNotAllowed)

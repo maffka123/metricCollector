@@ -111,7 +111,7 @@ func TestMetric_MarshalJSON(t *testing.T) {
 			}
 			got, err := m.MarshalJSON()
 			assert.NoError(t, err)
-			want, err := json.Marshal(tt.want)
+			want, _ := json.Marshal(tt.want)
 			assert.Equal(t, got, want)
 		})
 	}

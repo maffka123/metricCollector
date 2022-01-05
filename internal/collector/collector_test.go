@@ -56,7 +56,7 @@ func TestGetAllMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := GetAllMetrics()
 			assert.IsType(t, tt.want, got)
-			assert.Equal(t, 28, len(got))
+			assert.Equal(t, 29, len(got))
 		})
 	}
 }

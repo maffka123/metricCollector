@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/caarlos0/env/v6"
 	"github.com/maffka123/metricCollector/internal/handlers"
 	"github.com/maffka123/metricCollector/internal/storage"
 	"log"
@@ -14,10 +15,20 @@ import (
 
 var db = storage.NewInMemoryDB()
 
+type Config struct {
+	Endpoint string `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
+}
+
 func main() {
 
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := handlers.MetricRouter(db)
-	srv := &http.Server{Addr: ":8080", Handler: r}
+	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -32,7 +43,7 @@ func main() {
 		}
 	}()
 
-	fmt.Println("Start serving on localhost:8080")
+	fmt.Printf("Start serving on %s\n", cfg.Endpoint)
 	log.Fatal(srv.ListenAndServe())
 
 }

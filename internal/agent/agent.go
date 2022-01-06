@@ -5,24 +5,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/maffka123/metricCollector/internal/collector"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/maffka123/metricCollector/internal/agent/models"
+	"github.com/maffka123/metricCollector/internal/collector"
 )
 
-var endpoint string = "http://127.0.0.1:8080"
 var retries int = 3
 var delay time.Duration = 10 * time.Second //s
-type sendDataFunc func(*http.Client, *collector.Metric) error
+type sendDataFunc func(*models.Config, *http.Client, *collector.Metric) error
 
 //initMetrics initializes list with all metrics of interest, send first values to the server
-func InitMetrics(client *http.Client) []*collector.Metric {
+func InitMetrics(cfg *models.Config, client *http.Client) []*collector.Metric {
 	metricList := collector.GetAllMetrics()
 	for _, value := range metricList {
 		value.Print()
 		//sendData(client, value)
-		err := simpleBackoff(sendJSONData, client, value)
+		err := simpleBackoff(sendJSONData, cfg, client, value)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -47,8 +48,8 @@ func UpdateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 }
 
 //sendJSONData sends metric in json format to the server.
-func sendJSONData(client *http.Client, m *collector.Metric) error {
-	url := fmt.Sprintf("%s/update/", endpoint)
+func sendJSONData(cfg *models.Config, client *http.Client, m *collector.Metric) error {
+	url := fmt.Sprintf("%s/update/", cfg.Endpoint)
 
 	metricToSend, err := json.Marshal(m)
 	if err != nil {
@@ -76,14 +77,14 @@ func sendJSONData(client *http.Client, m *collector.Metric) error {
 }
 
 // sendAllData iterates over metrics list and sent them to the server
-func SendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, metricList []*collector.Metric) {
+func SendAllData(ctx context.Context, cfg *models.Config, t <-chan time.Time, client *http.Client, metricList []*collector.Metric) {
 	for {
 
 		select {
 		case <-t:
 			fmt.Println("Sending all metrics")
 			for _, value := range metricList {
-				simpleBackoff(sendJSONData, client, value)
+				simpleBackoff(sendJSONData, cfg, client, value)
 			}
 		case <-ctx.Done():
 			fmt.Println("context canceled")
@@ -92,10 +93,10 @@ func SendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, m
 }
 
 // simpleBackoff repeats call to a function in case of an error
-func simpleBackoff(f sendDataFunc, c *http.Client, m *collector.Metric) error {
+func simpleBackoff(f sendDataFunc, cfg *models.Config, c *http.Client, m *collector.Metric) error {
 	var err error
 	for i := 0; i < retries; i++ {
-		err = f(c, m)
+		err = f(cfg, c, m)
 		if err == nil {
 			break
 		}

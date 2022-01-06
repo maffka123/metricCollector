@@ -6,20 +6,34 @@ import (
 	"testing"
 	"time"
 
+	"log"
+
+	"github.com/caarlos0/env/v6"
+	"github.com/maffka123/metricCollector/internal/agent/models"
 	"github.com/maffka123/metricCollector/internal/collector"
 	"github.com/stretchr/testify/assert"
 )
+
+func prepConf() *models.Config {
+	var cfg models.Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &cfg
+}
 
 func Test_simpleBackoff(t *testing.T) {
 	delay = 10 * time.Millisecond //s
 	client := &http.Client{}
 	timer := time.NewTimer(delay)
+	cfg := prepConf()
 
 	m := &collector.Metric{Name: "PollCount", Type: "counter"}
-	fErr := sendDataFunc(func(c *http.Client, m *collector.Metric) error {
+	fErr := sendDataFunc(func(cfg *models.Config, c *http.Client, m *collector.Metric) error {
 		return errors.New("some error")
 	})
-	fNoerr := sendDataFunc(func(c *http.Client, m *collector.Metric) error {
+	fNoerr := sendDataFunc(func(cfg *models.Config, c *http.Client, m *collector.Metric) error {
 		select {
 		case <-timer.C:
 			return nil
@@ -42,7 +56,7 @@ func Test_simpleBackoff(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			timer.Reset(delay)
-			err := simpleBackoff(tt.args.f, client, m)
+			err := simpleBackoff(tt.args.f, cfg, client, m)
 			assert.Equal(t, tt.wantErr, err)
 
 		})
@@ -51,6 +65,8 @@ func Test_simpleBackoff(t *testing.T) {
 
 func Test_sendData(t *testing.T) {
 	client := &http.Client{}
+	cfg := prepConf()
+
 	type args struct {
 		m *collector.Metric
 	}
@@ -59,11 +75,11 @@ func Test_sendData(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gouge"}}},
+		{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gauge"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := sendJSONData(client, tt.args.m)
+			err := sendJSONData(cfg, client, tt.args.m)
 			assert.Error(t, err)
 		})
 	}

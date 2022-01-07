@@ -1,9 +1,14 @@
 package storage
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"reflect"
 	"testing"
 
+	"github.com/caarlos0/env/v6"
+	server "github.com/maffka123/metricCollector/internal/server/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -225,6 +230,73 @@ func TestInMemoryDB_SelectAll(t *testing.T) {
 			if !reflect.DeepEqual(got1, tt.want.GougeList) {
 				t.Errorf("InMemoryDB.SelectAll() got1 = %v, want %v", got1, tt.want.GougeList)
 			}
+		})
+	}
+}
+
+func prepConf() *server.Config {
+	var cfg server.Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.Restore = false
+	return &cfg
+}
+
+func TestInMemoryDB_DumpDB(t *testing.T) {
+	cfg := prepConf()
+	db := Connect(cfg)
+	db.Counter["c1"] = 1
+	db.Counter["c2"] = 2
+	db.Gouge["g1"] = 1.5
+	db.StoreFile = "testdata/dump.json"
+	tests := []struct {
+		name string
+	}{
+		{name: "test1"},
+	}
+	for _, tt := range tests {
+		e := os.Remove(db.StoreFile)
+		if e != nil {
+			fmt.Println("file not found")
+		}
+		t.Run(tt.name, func(t *testing.T) {
+
+			db.DumpDB()
+
+			_, err := os.Stat(db.StoreFile)
+
+			assert.NoError(t, err, os.ErrNotExist)
+
+		})
+	}
+}
+
+// This test is connected to the test above, it cheks the file created above
+func TestInMemoryDB_RestoreDB(t *testing.T) {
+	cfg := prepConf()
+	db := Connect(cfg)
+	db.StoreFile = "testdata/dump.json"
+	type want struct {
+		counter map[string]int64
+		gauge   map[string]float64
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{name: "test1", want: want{counter: map[string]int64{"c1": 1, "c2": 2}, gauge: map[string]float64{"g1": 1.5}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			err := db.RestoreDB()
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want.counter, db.Counter)
+			assert.Equal(t, tt.want.gauge, db.Gouge)
+
 		})
 	}
 }

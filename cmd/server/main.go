@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/maffka123/metricCollector/internal/handlers"
+	"github.com/maffka123/metricCollector/internal/server"
+	"github.com/maffka123/metricCollector/internal/server/models"
 	"github.com/maffka123/metricCollector/internal/storage"
 	"log"
 	"net/http"
@@ -13,21 +15,17 @@ import (
 	"syscall"
 )
 
-var db = storage.NewInMemoryDB()
-
-type Config struct {
-	Endpoint string `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-}
-
 func main() {
 
-	var cfg Config
+	var cfg models.Config
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	r := handlers.MetricRouter(db)
+	db := storage.Connect(&cfg)
+
+	r, dbUpdated := handlers.MetricRouter(db)
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 
 	quit := make(chan os.Signal)
@@ -42,6 +40,8 @@ func main() {
 			log.Printf("HTTP server Shutdown: %v", err)
 		}
 	}()
+
+	go server.DealWithDumps(&cfg, db, dbUpdated)
 
 	fmt.Printf("Start serving on %s\n", cfg.Endpoint)
 	log.Fatal(srv.ListenAndServe())

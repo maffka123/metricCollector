@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/maffka123/metricCollector/internal/handlers/templates"
@@ -25,7 +26,7 @@ type allMetricsList struct {
 }
 
 //PostHandlerGouge processes POST request to add/replace value of a gouge metric
-func PostHandlerGouge(db storage.Repositories) http.HandlerFunc {
+func PostHandlerGouge(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		q := strings.Split(r.URL.String(), "/")
@@ -41,11 +42,12 @@ func PostHandlerGouge(db storage.Repositories) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
 		fmt.Printf("Got gauge: %s\n", q[len(q)-2])
+		dbUpdated <- time.Now()
 	}
 }
 
 //PostHandlerCounter processes POST request to add/replace value of a counter metric
-func PostHandlerCounter(db storage.Repositories) http.HandlerFunc {
+func PostHandlerCounter(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := strings.Split(strings.Trim(r.URL.String(), "/"), "/")
 
@@ -59,6 +61,7 @@ func PostHandlerCounter(db storage.Repositories) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
 		fmt.Printf("Got counter: %s\n", q[len(q)-2])
+		dbUpdated <- time.Now()
 	}
 }
 
@@ -127,7 +130,7 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 	}
 }
 
-func PostHandlerUpdate(db storage.Repositories) http.HandlerFunc {
+func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var m models.Metrics
@@ -146,7 +149,8 @@ func PostHandlerUpdate(db storage.Repositories) http.HandlerFunc {
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
-		fmt.Printf("Got metrich: %s\n", m.ID)
+		fmt.Printf("Got metric: %s\n", m.ID)
+		dbUpdated <- time.Now()
 	}
 }
 

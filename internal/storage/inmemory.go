@@ -16,19 +16,20 @@ type InMemoryDB struct {
 }
 
 func Connect(cfg *models.Config) *InMemoryDB {
-	db := InMemoryDB{Gouge: map[string]float64{}, Counter: map[string]int64{}}
+	db := InMemoryDB{
+		Gouge:         map[string]float64{},
+		Counter:       map[string]int64{},
+		StoreInterval: cfg.StoreInterval,
+		StoreFile:     cfg.StoreFile,
+		Restore:       cfg.Restore}
 
 	if cfg.Restore {
 		err := db.RestoreDB()
 		if err != nil {
-			fmt.Println(fmt.Errorf("Restore failed: %s", err))
+			fmt.Println(fmt.Errorf("restore failed: %s", err))
 			fmt.Println("Restore failed, starting with empty db")
 		}
 	}
-
-	db.StoreInterval = cfg.StoreInterval
-	db.StoreFile = cfg.StoreFile
-	db.Restore = cfg.Restore
 
 	return &db
 }

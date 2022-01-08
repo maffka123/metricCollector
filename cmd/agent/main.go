@@ -35,8 +35,8 @@ func main() {
 	metricList := agent.InitMetrics(&cfg, client)
 
 	//tickers for metric update and metric sending to the server
-	pollTicker := time.NewTicker(cfg.PollInterval)
-	reportTicker := time.NewTicker(cfg.ReportInterval)
+	pollTicker := time.NewTicker(*cfg.PollInterval)
+	reportTicker := time.NewTicker(*cfg.ReportInterval)
 
 	//start both tasks
 	go agent.UpdateMetrics(ctx, pollTicker.C, metricList)
@@ -49,7 +49,7 @@ func main() {
 func init() {
 	internal.GetConfig(&envCfg)
 
-	cfg.Endpoint = *flag.String("a", envCfg.Endpoint, "server address as host:port")
-	cfg.PollInterval = *flag.Duration("p", envCfg.PollInterval, "how often to update metrics")
-	cfg.ReportInterval = *flag.Duration("r", envCfg.PollInterval, "how often to send metrics to the server")
+	cfg.Endpoint = flag.String("a", *envCfg.Endpoint, "server address as host:port")
+	cfg.PollInterval = flag.Duration("p", *envCfg.PollInterval, "how often to update metrics")
+	cfg.ReportInterval = flag.Duration("r", *envCfg.PollInterval, "how often to send metrics to the server")
 }

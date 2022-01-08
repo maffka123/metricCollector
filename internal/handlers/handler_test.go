@@ -24,7 +24,7 @@ func prepConf() *config.Config {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg.Restore = false
+	*cfg.Restore = false
 	return &cfg
 }
 

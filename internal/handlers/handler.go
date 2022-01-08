@@ -142,6 +142,7 @@ func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.H
 		}
 		if m.MType == "counter" {
 			db.InsertCounter(m.ID, *m.Delta)
+			fmt.Printf("Counter: %s %d\n", m.ID, *m.Delta)
 		} else {
 			db.InsertGouge(m.ID, *m.Value)
 		}
@@ -167,9 +168,11 @@ func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
 		if m.MType == "counter" {
 			r := db.ValueFromCounter(m.ID)
 			m.Delta = &r
+			fmt.Printf("Counter: %s %d\n", m.ID, *m.Delta)
 		} else {
 			r := db.ValueFromGouge(m.ID)
 			m.Value = &r
+			fmt.Printf("Gauge: %s %.3f\n", m.ID, *m.Value)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

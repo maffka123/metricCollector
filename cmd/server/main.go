@@ -25,8 +25,6 @@ func main() {
 
 	flag.Parse()
 
-	fmt.Println(cfg.Endpoint)
-
 	db := storage.Connect(&cfg)
 
 	r, dbUpdated := handlers.MetricRouter(db)

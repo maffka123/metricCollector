@@ -1,6 +1,8 @@
-package models
+package config
 
-import "time"
+import (
+	"time"
+)
 
 type Config struct {
 	Endpoint       string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/caarlos0/env/v6"
-	server "github.com/maffka123/metricCollector/internal/server/models"
+	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -234,8 +234,8 @@ func TestInMemoryDB_SelectAll(t *testing.T) {
 	}
 }
 
-func prepConf() *server.Config {
-	var cfg server.Config
+func prepConf() *config.Config {
+	var cfg config.Config
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)

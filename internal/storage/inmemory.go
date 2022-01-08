@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/maffka123/metricCollector/internal/server/models"
+	"github.com/maffka123/metricCollector/internal/server/config"
 )
 
 type InMemoryDB struct {
@@ -15,7 +15,7 @@ type InMemoryDB struct {
 	Restore       bool               `json:"-"`
 }
 
-func Connect(cfg *models.Config) *InMemoryDB {
+func Connect(cfg *config.Config) *InMemoryDB {
 	db := InMemoryDB{
 		Gouge:         map[string]float64{},
 		Counter:       map[string]int64{},

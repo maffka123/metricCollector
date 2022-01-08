@@ -3,25 +3,26 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/caarlos0/env/v6"
+
+	"flag"
+	internal "github.com/maffka123/metricCollector/internal/config"
 	"github.com/maffka123/metricCollector/internal/handlers"
 	"github.com/maffka123/metricCollector/internal/server"
-	"github.com/maffka123/metricCollector/internal/server/models"
-	"github.com/maffka123/metricCollector/internal/storage"
+	"github.com/maffka123/metricCollector/internal/server/config"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/maffka123/metricCollector/internal/storage"
 )
 
-func main() {
+var cfg config.Config
+var envCfg config.Config
 
-	var cfg models.Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+func main() {
+	flag.Parse()
 
 	db := storage.Connect(&cfg)
 
@@ -46,4 +47,13 @@ func main() {
 	fmt.Printf("Start serving on %s\n", cfg.Endpoint)
 	log.Fatal(srv.ListenAndServe())
 
+}
+
+func init() {
+	internal.GetConfig(&envCfg)
+
+	cfg.Endpoint = *flag.String("a", envCfg.Endpoint, "server address as host:port")
+	cfg.Restore = *flag.Bool("r", envCfg.Restore, "if to restore db from a dump")
+	cfg.StoreInterval = *flag.Duration("i", envCfg.StoreInterval, "how often to dump db into the file")
+	cfg.StoreFile = *flag.String("f", envCfg.StoreFile, "name and location of the file path/to/file.json")
 }

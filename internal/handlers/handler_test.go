@@ -13,13 +13,13 @@ import (
 
 	"github.com/caarlos0/env/v6"
 	"github.com/maffka123/metricCollector/internal/models"
-	server "github.com/maffka123/metricCollector/internal/server/models"
+	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/maffka123/metricCollector/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
-func prepConf() *server.Config {
-	var cfg server.Config
+func prepConf() *config.Config {
+	var cfg config.Config
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)

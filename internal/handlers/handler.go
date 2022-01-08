@@ -168,16 +168,15 @@ func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
 		if m.MType == "counter" {
 			r := db.ValueFromCounter(m.ID)
 			m.Delta = &r
-			fmt.Printf("Counter: %s %d\n", m.ID, *m.Delta)
 		} else {
 			r := db.ValueFromGouge(m.ID)
 			m.Value = &r
-			fmt.Printf("Gauge: %s %.3f\n", m.ID, *m.Value)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		mJSON, err := json.Marshal(m)
+		fmt.Println(string(mJSON))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

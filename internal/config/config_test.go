@@ -15,12 +15,13 @@ func TestGetConfig(t *testing.T) {
 		name string
 		args args
 	}{
-		{name: "test1", args: args{c: config.Config{}}},
+		{name: "test1", args: args{c: config.Config{Endpoint: "test.com:4565"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			GetConfig(&tt.args.c)
-			assert.Equal(t, *tt.args.c.Endpoint, "127.0.0.1:8080")
+			assert.Equal(t, tt.args.c.Endpoint, "test.com:4565")
+			assert.Equal(t, tt.args.c.StoreFile, "")
 		})
 	}
 }

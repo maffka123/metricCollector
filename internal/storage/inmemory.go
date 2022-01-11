@@ -19,11 +19,11 @@ func Connect(cfg *config.Config) *InMemoryDB {
 	db := InMemoryDB{
 		Gouge:         map[string]float64{},
 		Counter:       map[string]int64{},
-		StoreInterval: *cfg.StoreInterval,
-		StoreFile:     *cfg.StoreFile,
-		Restore:       *cfg.Restore}
+		StoreInterval: cfg.StoreInterval,
+		StoreFile:     cfg.StoreFile,
+		Restore:       cfg.Restore}
 
-	if *cfg.Restore {
+	if cfg.Restore {
 		err := db.RestoreDB()
 		if err != nil {
 			fmt.Println(fmt.Errorf("restore failed: %s", err))

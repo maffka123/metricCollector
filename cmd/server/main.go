@@ -14,21 +14,22 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 var cfg config.Config
-var envCfg config.Config
 
 func main() {
 
 	flag.Parse()
+	internal.GetConfig(&cfg)
 
 	db := storage.Connect(&cfg)
 
 	r, dbUpdated := handlers.MetricRouter(db)
-	srv := &http.Server{Addr: *cfg.Endpoint, Handler: r}
+	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -45,17 +46,16 @@ func main() {
 
 	go server.DealWithDumps(&cfg, db, dbUpdated)
 
-	fmt.Printf("Start serving on %s\n", *cfg.Endpoint)
+	fmt.Printf("Start serving on %s\n", cfg.Endpoint)
 	log.Fatal(srv.ListenAndServe())
 
 }
 
 func init() {
 
-	internal.GetConfig(&envCfg)
+	flag.StringVar(&cfg.Endpoint, "a", "127.0.0.1:8080", "server address as host:port")
+	flag.BoolVar(&cfg.Restore, "r", true, "if to restore db from a dump")
+	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "how often to dump db into the file")
+	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "name and location of the file path/to/file.json")
 
-	cfg.Endpoint = flag.String("a", *envCfg.Endpoint, "server address as host:port")
-	cfg.Restore = flag.Bool("r", *envCfg.Restore, "if to restore db from a dump")
-	cfg.StoreInterval = flag.Duration("i", *envCfg.StoreInterval, "how often to dump db into the file")
-	cfg.StoreFile = flag.String("f", *envCfg.StoreFile, "name and location of the file path/to/file.json")
 }

@@ -49,7 +49,7 @@ func UpdateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 
 //sendJSONData sends metric in json format to the server.
 func sendJSONData(cfg *config.Config, client *http.Client, m *collector.Metric) error {
-	url := fmt.Sprintf("http://%s/update/", *cfg.Endpoint)
+	url := fmt.Sprintf("http://%s/update/", cfg.Endpoint)
 
 	metricToSend, err := json.Marshal(m)
 	if err != nil {

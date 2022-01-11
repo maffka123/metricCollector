@@ -10,11 +10,11 @@ import (
 if store interavl is 0, dump will be triggered right after db change*/
 func DealWithDumps(cfg *config.Config, db *storage.InMemoryDB, dbUpdated chan time.Time) {
 
-	if *cfg.StoreFile != "" && *cfg.StoreInterval != 0 {
-		storeTicker := time.NewTicker(*cfg.StoreInterval)
+	if cfg.StoreFile != "" && cfg.StoreInterval != 0 {
+		storeTicker := time.NewTicker(cfg.StoreInterval)
 		go runDump(storeTicker.C, db)
 		go flushChannel(dbUpdated)
-	} else if *cfg.StoreFile != "" && *cfg.StoreInterval == 0 {
+	} else if cfg.StoreFile != "" && cfg.StoreInterval == 0 {
 		go runDump(dbUpdated, db)
 	} else {
 		go flushChannel(dbUpdated)

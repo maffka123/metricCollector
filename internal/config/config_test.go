@@ -3,19 +3,22 @@ package config
 import (
 	"testing"
 
-	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetConfig(t *testing.T) {
+	type config struct {
+		Endpoint  string `env:"ADDRESS"`
+		StoreFile string `env:"STORE_FILE"`
+	}
 	type args struct {
-		c config.Config
+		c config
 	}
 	tests := []struct {
 		name string
 		args args
 	}{
-		{name: "test1", args: args{c: config.Config{Endpoint: "test.com:4565"}}},
+		{name: "test1", args: args{c: config{Endpoint: "test.com:4565"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

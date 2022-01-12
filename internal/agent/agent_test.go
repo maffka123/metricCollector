@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func prepConf() *config.Config {
+func prepConf() config.Config {
 	var cfg config.Config
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &cfg
+	return cfg
 }
 
 func Test_simpleBackoff(t *testing.T) {
@@ -30,10 +30,10 @@ func Test_simpleBackoff(t *testing.T) {
 	cfg := prepConf()
 
 	m := &collector.Metric{Name: "PollCount", Type: "counter"}
-	fErr := sendDataFunc(func(cfg *config.Config, c *http.Client, m *collector.Metric) error {
+	fErr := sendDataFunc(func(cfg config.Config, c *http.Client, m *collector.Metric) error {
 		return errors.New("some error")
 	})
-	fNoerr := sendDataFunc(func(cfg *config.Config, c *http.Client, m *collector.Metric) error {
+	fNoerr := sendDataFunc(func(cfg config.Config, c *http.Client, m *collector.Metric) error {
 		select {
 		case <-timer.C:
 			return nil

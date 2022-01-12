@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-
-	"flag"
-	internal "github.com/maffka123/metricCollector/internal/config"
 	"github.com/maffka123/metricCollector/internal/handlers"
 	"github.com/maffka123/metricCollector/internal/server"
 	"github.com/maffka123/metricCollector/internal/server/config"
@@ -14,17 +11,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
-var cfg config.Config
-
 func main() {
-
-	flag.Parse()
-	internal.GetConfig(&cfg)
+	cfg := config.InitConfig()
 
 	db := storage.Connect(&cfg)
 
@@ -48,14 +40,5 @@ func main() {
 
 	fmt.Printf("Start serving on %s\n", cfg.Endpoint)
 	log.Fatal(srv.ListenAndServe())
-
-}
-
-func init() {
-
-	flag.StringVar(&cfg.Endpoint, "a", "127.0.0.1:8080", "server address as host:port")
-	flag.BoolVar(&cfg.Restore, "r", true, "if to restore db from a dump")
-	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "how often to dump db into the file")
-	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "name and location of the file path/to/file.json")
 
 }

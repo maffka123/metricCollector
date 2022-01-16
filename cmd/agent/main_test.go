@@ -27,7 +27,7 @@ func Test_run(t *testing.T) {
 			if !tt.server {
 				os.Setenv("Endpoint", "127.0.0.1:8081")
 			}
-			srv := HttpMock("/update", http.StatusOK, struct{ Status string }{Status: "success"})
+			srv := HTTPMock("/update", http.StatusOK, struct{ Status string }{Status: "success"})
 			defer srv.Close()
 			err := run()
 			if tt.wantErr {

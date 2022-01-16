@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -24,16 +25,19 @@ func prepConf() config.Config {
 }
 
 func Test_simpleBackoff(t *testing.T) {
-	delay = 10 * time.Millisecond //s
+	delay := 10 * time.Millisecond //s
 	client := &http.Client{}
 	timer := time.NewTimer(delay)
 	cfg := prepConf()
+	cfg.Delay = delay
+	cfg.Retries = 3
+	ctx := context.Background()
 
 	m := &collector.Metric{Name: "PollCount", Type: "counter"}
-	fErr := sendDataFunc(func(cfg config.Config, c *http.Client, m *collector.Metric) error {
+	fErr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m *collector.Metric) error {
 		return errors.New("some error")
 	})
-	fNoerr := sendDataFunc(func(cfg config.Config, c *http.Client, m *collector.Metric) error {
+	fNoerr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m *collector.Metric) error {
 		select {
 		case <-timer.C:
 			return nil
@@ -56,7 +60,7 @@ func Test_simpleBackoff(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			timer.Reset(delay)
-			err := simpleBackoff(tt.args.f, cfg, client, m)
+			err := simpleBackoff(ctx, tt.args.f, cfg, client, m)
 			assert.Equal(t, tt.wantErr, err)
 
 		})
@@ -66,6 +70,8 @@ func Test_simpleBackoff(t *testing.T) {
 func Test_sendData(t *testing.T) {
 	client := &http.Client{}
 	cfg := prepConf()
+	cfg.Retries = 3
+	ctx := context.Background()
 
 	type args struct {
 		m *collector.Metric
@@ -79,7 +85,7 @@ func Test_sendData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := sendJSONData(cfg, client, tt.args.m)
+			err := sendJSONData(ctx, cfg, client, tt.args.m)
 			assert.Error(t, err)
 		})
 	}

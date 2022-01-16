@@ -2,15 +2,14 @@ package config
 
 import (
 	"github.com/caarlos0/env/v6"
-	"log"
 )
 
 type confObj interface{}
 
-func GetConfig(c confObj) {
+func GetConfig(c confObj) error {
 	err := env.Parse(c)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
+	return nil
 }

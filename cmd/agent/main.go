@@ -38,16 +38,20 @@ func run() error {
 
 	//starting list of metrices, with ability to cancel it
 	var m models.MetricList
-	ch := make(chan models.MetricList)
+	ch := make(chan models.MetricList, 1)
 	go agent.InitMetrics(ctx, cfg, client, ch)
 
-	select {
-	case m := <-ch:
-		if m.Err != nil {
-			return err
+metricList:
+	for {
+		select {
+		case m = <-ch:
+			if m.Err != nil {
+				return m.Err
+			}
+			break metricList
+		case <-quit:
+			return nil
 		}
-	case <-quit:
-		return nil
 	}
 
 	//tickers for metric update and metric sending to the server
@@ -55,11 +59,18 @@ func run() error {
 	reportTicker := time.NewTicker(cfg.ReportInterval)
 
 	//start both tasks
+	var er chan error
 	go agent.UpdateMetrics(ctx, pollTicker.C, m.MetricList)
-	go agent.SendAllData(ctx, cfg, reportTicker.C, client, m.MetricList)
+	go agent.SendAllData(ctx, cfg, reportTicker.C, client, m.MetricList, er)
 
-	//if signal to qiut received cancel ctx
-	<-quit
+	//if signal to qiut or error from other functions received, cancel ctx
+	for {
+		select {
+		case <-quit:
+			return nil
+		case err = <-er:
+			return err
+		}
+	}
 
-	return nil
 }

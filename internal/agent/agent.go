@@ -29,7 +29,8 @@ func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch
 			}
 		}
 	}
-	ch <- models.MetricList{MetricList: metricList, Err: nil}
+	a := models.MetricList{MetricList: metricList, Err: nil}
+	ch <- a
 }
 
 //updateMetrics updates metrics from the list
@@ -53,6 +54,7 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 	url := fmt.Sprintf("http://%s/update/", cfg.Endpoint)
 
 	metricToSend, err := json.Marshal(m)
+	fmt.Println(m.Name)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -78,8 +80,8 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 }
 
 // sendAllData iterates over metrics list and sent them to the server
-func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, client *http.Client, metricList []*collector.Metric) {
-	ctx, cancel := context.WithCancel(ctx)
+func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, client *http.Client, metricList []*collector.Metric, er chan error) {
+
 	for {
 
 		select {
@@ -88,7 +90,7 @@ func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, cli
 			for _, value := range metricList {
 				err := simpleBackoff(ctx, sendJSONData, cfg, client, value)
 				if err != nil {
-					cancel()
+					er <- err
 				}
 			}
 		case <-ctx.Done():
@@ -100,6 +102,7 @@ func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, cli
 // simpleBackoff repeats call to a function in case of an error
 func simpleBackoff(ctx context.Context, f sendDataFunc, cfg config.Config, c *http.Client, m *collector.Metric) error {
 	var err error
+backoff:
 	for i := 0; i < cfg.Retries; i++ {
 		select {
 		case <-ctx.Done():
@@ -108,7 +111,7 @@ func simpleBackoff(ctx context.Context, f sendDataFunc, cfg config.Config, c *ht
 		default:
 			err = f(ctx, cfg, c, m)
 			if err == nil {
-				break
+				break backoff
 			}
 			fmt.Printf("Backing off number %d\n", i+1)
 			time.Sleep(cfg.Delay * time.Duration(i+1))

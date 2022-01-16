@@ -48,7 +48,7 @@ type ctrl struct {
 }
 
 func (c *ctrl) mockHandler(w http.ResponseWriter, r *http.Request) {
-	resp := []byte{}
+	var resp []byte
 
 	rt := reflect.TypeOf(c.response)
 	if rt.Kind() == reflect.String {
@@ -63,7 +63,7 @@ func (c *ctrl) mockHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func HttpMock(pattern string, statusCode int, response interface{}) *httptest.Server {
+func HTTPMock(pattern string, statusCode int, response interface{}) *httptest.Server {
 	c := &ctrl{statusCode, response}
 
 	handler := http.NewServeMux()

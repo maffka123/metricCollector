@@ -28,6 +28,16 @@ func checkForPost(next http.Handler) http.HandlerFunc {
 	})
 }
 
+func checkForJSON(next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Type") != "application/json" {
+			http.Error(w, "This endpoint accepts only jsons", http.StatusMethodNotAllowed)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func Conveyor(h http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
 	for _, middleware := range middlewares {
 		h = middleware(h)

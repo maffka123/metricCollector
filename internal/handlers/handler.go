@@ -1,14 +1,18 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/maffka123/metricCollector/internal/handlers/templates"
+	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
@@ -22,7 +26,7 @@ type allMetricsList struct {
 }
 
 //PostHandlerGouge processes POST request to add/replace value of a gouge metric
-func PostHandlerGouge(db storage.Repositories) http.HandlerFunc {
+func PostHandlerGouge(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		q := strings.Split(r.URL.String(), "/")
@@ -38,11 +42,12 @@ func PostHandlerGouge(db storage.Repositories) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
 		fmt.Printf("Got gauge: %s\n", q[len(q)-2])
+		dbUpdated <- time.Now()
 	}
 }
 
 //PostHandlerCounter processes POST request to add/replace value of a counter metric
-func PostHandlerCounter(db storage.Repositories) http.HandlerFunc {
+func PostHandlerCounter(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := strings.Split(strings.Trim(r.URL.String(), "/"), "/")
 
@@ -56,6 +61,7 @@ func PostHandlerCounter(db storage.Repositories) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
 		fmt.Printf("Got counter: %s\n", q[len(q)-2])
+		dbUpdated <- time.Now()
 	}
 }
 
@@ -101,8 +107,8 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 		mlc := []metricsList{}
 		mlg := []metricsList{}
 
-		rw.WriteHeader(http.StatusOK)
 		rw.Header().Set("Content-Type", "text/html")
+		rw.WriteHeader(http.StatusOK)
 		listCounter, listGouge := db.SelectAll()
 
 		for _, v := range listCounter {
@@ -121,5 +127,60 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 		}
 
 		tmpl.Execute(rw, aml)
+	}
+}
+
+func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var m models.Metrics
+		err := decoder.Decode(&m)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("400 - Metric json cannot be decoded: %s", err), http.StatusBadRequest)
+			return
+		}
+		if m.MType == "counter" {
+			db.InsertCounter(m.ID, *m.Delta)
+			fmt.Printf("Counter: %s %d\n", m.ID, *m.Delta)
+		} else {
+			db.InsertGouge(m.ID, *m.Value)
+		}
+
+		w.Header().Set("application-type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok}`))
+		fmt.Printf("Got metric: %s\n", m.ID)
+		dbUpdated <- time.Now()
+	}
+}
+
+func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var m models.Metrics
+		err := decoder.Decode(&m)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("400 - Metric json cannot be decoded: %s", err), http.StatusBadRequest)
+			return
+		}
+		if m.MType == "counter" {
+			r := db.ValueFromCounter(m.ID)
+			m.Delta = &r
+		} else {
+			r := db.ValueFromGouge(m.ID)
+			m.Value = &r
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		mJSON, err := json.Marshal(m)
+		fmt.Println(string(mJSON))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		w.Write([]byte(mJSON))
 	}
 }

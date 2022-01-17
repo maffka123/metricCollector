@@ -4,20 +4,24 @@ import (
 	"context"
 	"fmt"
 	"github.com/maffka123/metricCollector/internal/handlers"
-	"github.com/maffka123/metricCollector/internal/storage"
+	"github.com/maffka123/metricCollector/internal/server"
+	"github.com/maffka123/metricCollector/internal/server/config"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/maffka123/metricCollector/internal/storage"
 )
 
-var db = storage.NewInMemoryDB()
-
 func main() {
+	cfg := config.InitConfig()
 
-	r := handlers.MetricRouter(db)
-	srv := &http.Server{Addr: ":8080", Handler: r}
+	db := storage.Connect(&cfg)
+
+	r, dbUpdated := handlers.MetricRouter(db)
+	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -32,7 +36,9 @@ func main() {
 		}
 	}()
 
-	fmt.Println("Start serving on localhost:8080")
+	go server.DealWithDumps(&cfg, db, dbUpdated)
+
+	fmt.Printf("Start serving on %s\n", cfg.Endpoint)
 	log.Fatal(srv.ListenAndServe())
 
 }

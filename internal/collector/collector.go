@@ -1,7 +1,9 @@
 package collector
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/maffka123/metricCollector/internal/models"
 	"math/rand"
 	"runtime"
 )
@@ -10,7 +12,7 @@ var runtimeMetricNameList = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUF
 	"GCSys", "HeapAlloc", "HeapIdle", "HeapInuse", "HeapObjects",
 	"HeapReleased", "HeapSys", "LastGC", "Lookups", "MCacheInuse", "MCacheSys",
 	"MSpanInuse", "MSpanSys", "Mallocs", "NextGC", "NumForcedGC", "NumGC",
-	"OtherSys", "PauseTotalNs", "StackInuse", "StackSys", "Sys"}
+	"OtherSys", "PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
 
 type Metric struct {
 	Name    string
@@ -72,4 +74,16 @@ func (m *Metric) Update() {
 	}
 
 	m.Change = m.currVal.diff(&m.prevVal)
+}
+
+func (m *Metric) MarshalJSON() ([]byte, error) {
+	newM := models.Metrics{}
+	newM.ID = m.Name
+	newM.MType = m.Type
+	if newM.MType == "counter" {
+		newM.Delta = m.Change.IntValue()
+	} else if newM.MType == "gauge" {
+		newM.Value = m.Change.FloatValue()
+	}
+	return json.Marshal(newM)
 }

@@ -1,32 +1,36 @@
 package agent
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/maffka123/metricCollector/internal/agent/config"
+	"github.com/maffka123/metricCollector/internal/agent/models"
 	"github.com/maffka123/metricCollector/internal/collector"
 	"net/http"
-	"os"
-	"reflect"
 	"time"
 )
 
-var endpoint string = "http://127.0.0.1:8080"
-var retries int = 3
-var delay time.Duration = 10 * time.Second //s
-type sendDataFunc func(*http.Client, *collector.Metric) error
+type sendDataFunc func(context.Context, config.Config, *http.Client, *collector.Metric) error
 
 //initMetrics initializes list with all metrics of interest, send first values to the server
-func InitMetrics(client *http.Client) []*collector.Metric {
+func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch chan models.MetricList) {
+	//ctx, cancel := context.WithCancel(ctx)
 	metricList := collector.GetAllMetrics()
 	for _, value := range metricList {
-		value.Print()
-		//sendData(client, value)
-		err := simpleBackoff(sendData, client, value)
-		if err != nil {
-			os.Exit(1)
+		select {
+		case <-ctx.Done():
+			fmt.Println("context canceled")
+		default:
+			err := simpleBackoff(ctx, sendJSONData, cfg, client, value)
+			if err != nil {
+				ch <- models.MetricList{MetricList: nil, Err: err}
+			}
 		}
 	}
-	return metricList
+	a := models.MetricList{MetricList: metricList, Err: nil}
+	ch <- a
 }
 
 //updateMetrics updates metrics from the list
@@ -45,17 +49,19 @@ func UpdateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 	}
 }
 
-//sendData sends metric to the server.
-func sendData(client *http.Client, m *collector.Metric) error {
-	var url string
-	if reflect.TypeOf(m.Change.Value()).Kind() == reflect.Int64 || reflect.TypeOf(m.Change.Value()).Kind() == reflect.Int {
-		url = fmt.Sprintf("%s/update/%s/%s/%d", endpoint, m.Type, m.Name, m.Change.Value())
-	} else {
-		url = fmt.Sprintf("%s/update/%s/%s/%f", endpoint, m.Type, m.Name, m.Change.Value())
+//sendJSONData sends metric in json format to the server.
+func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m *collector.Metric) error {
+	url := fmt.Sprintf("http://%s/update/", cfg.Endpoint)
+
+	metricToSend, err := json.Marshal(m)
+	fmt.Println(m.Name)
+	if err != nil {
+		fmt.Println(err)
+		return err
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, nil)
-	request.Header.Add("application-type", "text/plain")
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(metricToSend))
+	request.Header.Add("Content-Type", "application/json")
 
 	if err != nil {
 		fmt.Println(err)
@@ -74,14 +80,18 @@ func sendData(client *http.Client, m *collector.Metric) error {
 }
 
 // sendAllData iterates over metrics list and sent them to the server
-func SendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, metricList []*collector.Metric) {
+func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, client *http.Client, metricList []*collector.Metric, er chan error) {
+
 	for {
 
 		select {
 		case <-t:
 			fmt.Println("Sending all metrics")
 			for _, value := range metricList {
-				simpleBackoff(sendData, client, value)
+				err := simpleBackoff(ctx, sendJSONData, cfg, client, value)
+				if err != nil {
+					er <- err
+				}
 			}
 		case <-ctx.Done():
 			fmt.Println("context canceled")
@@ -90,15 +100,22 @@ func SendAllData(ctx context.Context, t <-chan time.Time, client *http.Client, m
 }
 
 // simpleBackoff repeats call to a function in case of an error
-func simpleBackoff(f sendDataFunc, c *http.Client, m *collector.Metric) error {
+func simpleBackoff(ctx context.Context, f sendDataFunc, cfg config.Config, c *http.Client, m *collector.Metric) error {
 	var err error
-	for i := 0; i < retries; i++ {
-		err = f(c, m)
-		if err == nil {
-			break
+backoff:
+	for i := 0; i < cfg.Retries; i++ {
+		select {
+		case <-ctx.Done():
+			fmt.Println("context canceled")
+			return nil
+		default:
+			err = f(ctx, cfg, c, m)
+			if err == nil {
+				break backoff
+			}
+			fmt.Printf("Backing off number %d\n", i+1)
+			time.Sleep(cfg.Delay * time.Duration(i+1))
 		}
-		fmt.Printf("Backing off number %d\n", i+1)
-		time.Sleep(delay * time.Duration(i+1))
 	}
 	return err
 }

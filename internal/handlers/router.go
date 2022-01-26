@@ -21,19 +21,19 @@ func MetricRouter(db storage.Repositories) (chi.Router, chan time.Time) {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/update/", func(r chi.Router) {
-		r.Post("/gauge/*", Conveyor(PostHandlerGouge(db, dbUpdated), checkForPost, checkForLength))
-		r.Post("/counter/*", Conveyor(PostHandlerCounter(db, dbUpdated), checkForPost, checkForLength))
+		r.Post("/gauge/*", Conveyor(PostHandlerGouge(db, dbUpdated), checkForPost, checkForLength, unpackGZIP))
+		r.Post("/counter/*", Conveyor(PostHandlerCounter(db, dbUpdated), checkForPost, checkForLength, unpackGZIP))
 		r.Post("/*", func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "501 - Metric type unknown!", http.StatusNotImplemented)
 		})
-		r.Post("/", Conveyor(PostHandlerUpdate(db, dbUpdated), checkForJSON, checkForPost))
+		r.Post("/", Conveyor(PostHandlerUpdate(db, dbUpdated), checkForJSON, checkForPost, unpackGZIP))
 
 	})
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/value/{type}/{name}", GetHandlerValue(db))
-		r.Get("/", GetAllNames(db))
-		r.Post("/value/", Conveyor(PostHandlerReturn(db), checkForJSON, checkForPost))
+		r.Get("/", Conveyor(GetAllNames(db), packGZIP))
+		r.Post("/value/", Conveyor(PostHandlerReturn(db), checkForJSON, checkForPost, packGZIP, unpackGZIP))
 	})
 	return r, dbUpdated
 }

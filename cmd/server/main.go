@@ -6,13 +6,12 @@ import (
 	"github.com/maffka123/metricCollector/internal/handlers"
 	"github.com/maffka123/metricCollector/internal/server"
 	"github.com/maffka123/metricCollector/internal/server/config"
+	"github.com/maffka123/metricCollector/internal/storage"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 func main() {

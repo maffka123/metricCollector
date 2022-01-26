@@ -181,7 +181,7 @@ func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
 			m.Value = &r
 		}
 
-		if key != nil && *key != "" {
+		if m.Hash != "" {
 			err := m.CompareHash(*key)
 			if err != nil {
 				http.Error(w, "400 - Hashes do not agree", http.StatusBadRequest)

@@ -19,7 +19,7 @@ func main() {
 
 	db := storage.Connect(&cfg)
 
-	r, dbUpdated := handlers.MetricRouter(db)
+	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 
 	quit := make(chan os.Signal)

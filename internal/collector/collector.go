@@ -20,24 +20,25 @@ type Metric struct {
 	currVal number
 	Change  number
 	Type    string
+	Key     *string
 }
 
 /*
 GetAllMetrics prepares and intialize all metrics that are collected in this service.
 see example here: https://github.com/tevjef/go-runtime-metrics/blob/master/collector/collector.go
 */
-func GetAllMetrics() []*Metric {
+func GetAllMetrics(k *string) []*Metric {
 	memStats := startStats()
 	metricList := []*Metric{}
 	for _, value := range runtimeMetricNameList {
 
-		m := Metric{Name: value, Type: "gauge"}
+		m := Metric{Name: value, Type: "gauge", Key: k}
 		m.init(memStats)
 		metricList = append(metricList, &m)
 	}
 
-	metricList = append(metricList, &Metric{Name: "PollCount", Type: "counter", currVal: number{integer: 1, float: 0.0}})
-	metricList = append(metricList, &Metric{Name: "RandomValue", Type: "gauge", currVal: number{integer: rand.Intn(100), float: 0.0}})
+	metricList = append(metricList, &Metric{Name: "PollCount", Type: "counter", currVal: number{integer: 1, float: 0.0}, Key: k})
+	metricList = append(metricList, &Metric{Name: "RandomValue", Type: "gauge", currVal: number{integer: rand.Intn(100), float: 0.0}, Key: k})
 
 	return metricList
 }
@@ -85,5 +86,10 @@ func (m *Metric) MarshalJSON() ([]byte, error) {
 	} else if newM.MType == "gauge" {
 		newM.Value = m.Change.FloatValue()
 	}
+
+	if m.Key != nil && *m.Key != "" {
+		newM.CalcHash(*m.Key)
+	}
+
 	return json.Marshal(newM)
 }

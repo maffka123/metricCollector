@@ -17,7 +17,7 @@ type sendDataFunc func(context.Context, config.Config, *http.Client, *collector.
 //initMetrics initializes list with all metrics of interest, send first values to the server
 func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch chan models.MetricList) {
 	//ctx, cancel := context.WithCancel(ctx)
-	metricList := collector.GetAllMetrics()
+	metricList := collector.GetAllMetrics(&cfg.Key)
 	for _, value := range metricList {
 		select {
 		case <-ctx.Done():

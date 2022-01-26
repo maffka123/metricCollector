@@ -130,7 +130,7 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 	}
 }
 
-func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
+func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time, key *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var m models.Metrics
@@ -147,6 +147,14 @@ func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.H
 			db.InsertGouge(m.ID, *m.Value)
 		}
 
+		if key != nil && *key != "" {
+			err := m.CompareHash(*key)
+			if err != nil {
+				http.Error(w, "400 - Hashes do not agree", http.StatusBadRequest)
+				return
+			}
+		}
+
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
@@ -155,7 +163,7 @@ func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.H
 	}
 }
 
-func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
+func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var m models.Metrics
@@ -171,6 +179,14 @@ func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
 		} else {
 			r := db.ValueFromGouge(m.ID)
 			m.Value = &r
+		}
+
+		if key != nil && *key != "" {
+			err := m.CompareHash(*key)
+			if err != nil {
+				http.Error(w, "400 - Hashes do not agree", http.StatusBadRequest)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

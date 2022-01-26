@@ -12,6 +12,7 @@ type Config struct {
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 	Retries        int           `env:"BACKOFF_RETRIES"`
 	Delay          time.Duration `env:"BACKOFF_DELAY"`
+	Key            string        `env:"KEY"`
 }
 
 func InitConfig() (Config, error) {
@@ -22,6 +23,7 @@ func InitConfig() (Config, error) {
 	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "how often to send metrics to the server")
 	flag.IntVar(&cfg.Retries, "n", 3, "how many times should try to send metrics in case of error")
 	flag.DurationVar(&cfg.Delay, "t", 10*time.Second, "delay in case of error and retry")
+	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
 
 	flag.Parse()
 	err := internal.GetConfig(&cfg)

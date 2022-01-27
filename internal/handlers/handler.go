@@ -189,6 +189,10 @@ func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
 			}
 		}
 
+		if *key != "" {
+			m.CalcHash(*key)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		mJSON, err := json.Marshal(m)

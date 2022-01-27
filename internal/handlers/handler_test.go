@@ -357,6 +357,16 @@ func TestPostHandlerReturn(t *testing.T) {
 			},
 			request: request{request: "/value/", body: models.Metrics{ID: "Alloc", MType: "gauge", Hash: "bd4208a757a7c5e94a4ce2975530aaddadf889c8ee627798e57e89eb066d6c3d"}},
 		},
+		{
+			name: "gauge2",
+			args: args{db: db},
+			want: want{
+				applicationType: "application/json",
+				statusCode:      200,
+				json:            models.Metrics{ID: "Alloc", MType: "gauge", Value: &f, Hash: "bd4208a757a7c5e94a4ce2975530aaddadf889c8ee627798e57e89eb066d6c3d"},
+			},
+			request: request{request: "/value/", body: models.Metrics{ID: "Alloc", MType: "gauge"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -376,6 +386,7 @@ func TestPostHandlerReturn(t *testing.T) {
 			assert.Equal(t, tt.want.applicationType, result.Header.Get("Content-Type"))
 			want, _ := json.Marshal(tt.want.json)
 			bodyBytes, _ := io.ReadAll(result.Body)
+			fmt.Println(string(body))
 			assert.Equal(t, want, bodyBytes)
 		})
 	}

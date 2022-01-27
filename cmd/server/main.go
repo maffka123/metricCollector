@@ -18,10 +18,10 @@ func main() {
 	cfg := config.InitConfig()
 
 	db := storage.Connect(&cfg)
-	pg := storage.ConnectPG(context.Background(), &cfg)
+	//pg := storage.ConnectPG(context.Background(), &cfg)
 
 	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
-	r.Group(handlers.PgRouter(pg))
+	//r.Group(handlers.PgRouter(pg))
 
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 

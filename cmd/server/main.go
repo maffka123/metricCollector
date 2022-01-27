@@ -20,9 +20,8 @@ func main() {
 	db := storage.Connect(&cfg)
 	pg := storage.ConnectPG(context.Background(), &cfg)
 
-	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
-	r.Get("/ping", handlers.GetHandlerPing(pg))
-	r.Get("/", handlers.GetAllNames(db))
+	r, dbUpdated := handlers.MetricRouter(db, pg, &cfg.Key)
+	//r.Get("/ping", handlers.GetHandlerPing(pg))
 
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 

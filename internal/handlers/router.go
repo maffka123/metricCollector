@@ -9,7 +9,7 @@ import (
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
-func MetricRouter(db storage.Repositories, key *string) (chi.Router, chan time.Time) {
+func MetricRouter(db storage.Repositories, pg *storage.PGDB, key *string) (chi.Router, chan time.Time) {
 	dbUpdated := make(chan time.Time)
 
 	r := chi.NewRouter()
@@ -34,6 +34,7 @@ func MetricRouter(db storage.Repositories, key *string) (chi.Router, chan time.T
 		r.Get("/{type}/{name}", GetHandlerValue(db))
 		r.Post("/", Conveyor(PostHandlerReturn(db, key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
 	})
-
+	r.Get("/ping", GetHandlerPing(pg))
+	r.Get("/", Conveyor(GetAllNames(db), packGZIP))
 	return r, dbUpdated
 }

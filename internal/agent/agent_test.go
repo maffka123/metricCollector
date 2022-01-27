@@ -71,6 +71,7 @@ func Test_sendData(t *testing.T) {
 	client := &http.Client{}
 	cfg := prepConf()
 	cfg.Retries = 3
+	cfg.Key = "test"
 	ctx := context.Background()
 
 	type args struct {
@@ -81,7 +82,7 @@ func Test_sendData(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gauge"}}},
+		{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gauge", Key: &cfg.Key}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

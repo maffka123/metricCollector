@@ -46,6 +46,7 @@ func TestMetric_Update(t *testing.T) {
 }
 
 func TestGetAllMetrics(t *testing.T) {
+	key := "test"
 	tests := []struct {
 		name string
 		want []*Metric
@@ -54,7 +55,7 @@ func TestGetAllMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GetAllMetrics()
+			got := GetAllMetrics(&key)
 			assert.IsType(t, tt.want, got)
 			assert.Equal(t, 29, len(got))
 		})
@@ -98,9 +99,16 @@ func TestMetric_MarshalJSON(t *testing.T) {
 		name   string
 		fields fields
 		want   models.Metrics
+		key    string
 	}{
 		{name: "test1", fields: fields{Name: "Alloc", Change: number{integer: 1}, Type: "gauge"},
-			want: models.Metrics{ID: "Alloc", MType: "gauge", Value: &f}},
+			want: models.Metrics{ID: "Alloc", MType: "gauge", Value: &f, Hash: "8bc975450597ab163a49d8ee05461ef1b8d7734ca97e1c9f0bf3f691f68a0a11"},
+			key:  "test",
+		},
+		{name: "test1", fields: fields{Name: "Alloc", Change: number{integer: 1}, Type: "gauge"},
+			want: models.Metrics{ID: "Alloc", MType: "gauge", Value: &f},
+			key:  "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -108,6 +116,7 @@ func TestMetric_MarshalJSON(t *testing.T) {
 				Name:   tt.fields.Name,
 				Change: tt.fields.Change,
 				Type:   tt.fields.Type,
+				Key:    &tt.key,
 			}
 			got, err := m.MarshalJSON()
 			assert.NoError(t, err)

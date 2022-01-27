@@ -6,21 +6,23 @@ import (
 	"github.com/maffka123/metricCollector/internal/handlers"
 	"github.com/maffka123/metricCollector/internal/server"
 	"github.com/maffka123/metricCollector/internal/server/config"
+	"github.com/maffka123/metricCollector/internal/storage"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 func main() {
 	cfg := config.InitConfig()
 
 	db := storage.Connect(&cfg)
+	pg := storage.ConnectPG(context.Background(), &cfg)
 
-	r, dbUpdated := handlers.MetricRouter(db)
+	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
+	r.Group(handlers.PgRouter(pg))
+
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 
 	quit := make(chan os.Signal)

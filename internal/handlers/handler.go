@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -130,7 +131,7 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 	}
 }
 
-func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
+func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time, key *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var m models.Metrics
@@ -147,6 +148,14 @@ func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.H
 			db.InsertGouge(m.ID, *m.Value)
 		}
 
+		if key != nil && *key != "" {
+			err := m.CompareHash(*key)
+			if err != nil {
+				http.Error(w, "400 - Hashes do not agree", http.StatusBadRequest)
+				return
+			}
+		}
+
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
@@ -155,7 +164,7 @@ func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time) http.H
 	}
 }
 
-func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
+func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var m models.Metrics
@@ -173,6 +182,18 @@ func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
 			m.Value = &r
 		}
 
+		if m.Hash != "" {
+			err := m.CompareHash(*key)
+			if err != nil {
+				http.Error(w, "400 - Hashes do not agree", http.StatusBadRequest)
+				return
+			}
+		}
+
+		if *key != "" {
+			m.CalcHash(*key)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		mJSON, err := json.Marshal(m)
@@ -182,5 +203,18 @@ func PostHandlerReturn(db storage.Repositories) http.HandlerFunc {
 			os.Exit(1)
 		}
 		w.Write([]byte(mJSON))
+	}
+}
+
+func GetHandlerPing(db *storage.PGDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := db.Conn.Ping(context.Background())
+		if err != nil {
+			http.Error(w, "500 - Ping failed", http.StatusInternalServerError)
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+
 	}
 }

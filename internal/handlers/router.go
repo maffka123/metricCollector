@@ -35,6 +35,5 @@ func MetricRouter(db storage.Repositories, key *string) (chi.Router, chan time.T
 		r.Post("/", Conveyor(PostHandlerReturn(db, key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
 	})
 
-	r.Get("/", Conveyor(GetAllNames(db), packGZIP))
 	return r, dbUpdated
 }

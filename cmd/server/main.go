@@ -22,6 +22,7 @@ func main() {
 
 	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
 	r.Get("/ping", handlers.GetHandlerPing(pg))
+	r.Get("/", handlers.GetAllNames(db))
 
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 

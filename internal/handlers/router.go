@@ -38,10 +38,9 @@ func MetricRouter(db storage.Repositories, key *string) (chi.Router, chan time.T
 	return r, dbUpdated
 }
 
-func PgRouter(db *storage.PGDB) func(r chi.Router) {
+/*func PgRouter(db *storage.PGDB) func(r chi.Router) {
 	return func(r chi.Router) {
-
 		r.Get("/ping", GetHandlerPing(db))
 
 	}
-}
+}*/

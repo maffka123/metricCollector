@@ -30,17 +30,11 @@ func MetricRouter(db storage.Repositories, key *string) (chi.Router, chan time.T
 
 	})
 
-	r.Route("/", func(r chi.Router) {
-		r.Get("/value/{type}/{name}", GetHandlerValue(db))
-		r.Get("/", Conveyor(GetAllNames(db), packGZIP))
-		r.Post("/value/", Conveyor(PostHandlerReturn(db, key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
+	r.Route("/value/", func(r chi.Router) {
+		r.Get("/{type}/{name}", GetHandlerValue(db))
+		r.Post("/", Conveyor(PostHandlerReturn(db, key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
 	})
+
+	r.Get("/", Conveyor(GetAllNames(db), packGZIP))
 	return r, dbUpdated
 }
-
-/*func PgRouter(db *storage.PGDB) func(r chi.Router) {
-	return func(r chi.Router) {
-		r.Get("/ping", GetHandlerPing(db))
-
-	}
-}*/

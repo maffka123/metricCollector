@@ -30,11 +30,11 @@ func MetricRouter(db storage.Repositories, key *string) (chi.Router, chan time.T
 
 	})
 
-	//r.Route("/", func(r chi.Router) {
-	r.Get("/value/{type}/{name}", GetHandlerValue(db))
-	r.Get("/", Conveyor(GetAllNames(db), packGZIP))
-	r.Post("/value/", Conveyor(PostHandlerReturn(db, key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
-	//})
+	r.Route("/", func(r chi.Router) {
+		r.Get("/value/{type}/{name}", GetHandlerValue(db))
+		r.Get("/", Conveyor(GetAllNames(db), packGZIP))
+		r.Post("/value/", Conveyor(PostHandlerReturn(db, key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
+	})
 	return r, dbUpdated
 }
 

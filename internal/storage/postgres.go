@@ -35,13 +35,13 @@ func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
 
 	db.Conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS metrics (id serial PRIMARY KEY, name string UNIQUE NOT NULL, value float, type VARCHAR (10) NOT NULL);")
 
-	if cfg.Restore {
+	/*if cfg.Restore {
 		err := db.RestoreDB()
 		if err != nil {
 			fmt.Println(fmt.Errorf("restore failed: %s", err))
 			fmt.Println("Restore failed, starting with empty db")
 		}
-	}
+	}*/
 
 	return &db
 }

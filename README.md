@@ -15,7 +15,7 @@ The service collects a number of metrics from `runtime` and sends them furter to
 
 Metrics sourse: `runtime`
 
-## Metrics list
+## Metrics list2
 
 * "Alloc", gauge
 * "BuckHashSys", gauge

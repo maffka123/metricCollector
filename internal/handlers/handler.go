@@ -237,7 +237,7 @@ func PostHandlerUpdates(db storage.Repositories, dbUpdated chan time.Time, key *
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
 
-		logger.Debug("got", zap.String("metrics n", string(len(ms))))
+		logger.Debug("got", zap.String("metrics n", fmt.Sprint(len(ms))))
 		dbUpdated <- time.Now()
 	}
 }

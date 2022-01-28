@@ -115,7 +115,7 @@ backoff:
 			if err == nil {
 				break backoff
 			}
-			logger.Info("Backing off number", zap.String("n", string(i+1)))
+			logger.Info("Backing off number", zap.String("n", fmt.Sprint(i+1)))
 			time.Sleep(cfg.Delay * time.Duration(i+1))
 		}
 	}

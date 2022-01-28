@@ -229,14 +229,13 @@ func PostHandlerUpdates(db storage.Repositories, dbUpdated chan time.Time, key *
 		decoder := json.NewDecoder(r.Body)
 		var ms []models.Metrics
 		err := decoder.Decode(&ms)
-		newDB := db.(*storage.PGDB)
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("400 - Metric json cannot be decoded: %s", err), http.StatusBadRequest)
 			return
 		}
 
-		newDB.BatchInsert(ms)
+		db.BatchInsert(ms)
 
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)

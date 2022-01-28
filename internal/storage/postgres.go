@@ -184,21 +184,25 @@ func (db *PGDB) BatchInsert(m []models.Metrics) {
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = tx.Prepare(ctx, "batch insert", `INSERT INTO metrics (name, value, type)
-													VALUES($1,$2,$3) 
+	_, err = tx.Prepare(ctx, "batch insert counter", `INSERT INTO metrics (name, value, type)
+													VALUES($1,$2,'counter') 
 													ON CONFLICT (name) DO 
 												UPDATE SET value = metrics.value+$2;`)
+	_, err = tx.Prepare(ctx, "batch insert gauge", `INSERT INTO metrics (name, value, type)
+												VALUES($1,$2,'gauge') 
+												ON CONFLICT (name) DO 
+											UPDATE SET value = $2;`)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	for _, v := range m {
 		if v.MType == "counter" {
-			if _, err = tx.Exec(ctx, "batch insert", v.ID, v.Delta, v.MType); err != nil {
+			if _, err = tx.Exec(ctx, "batch insert counter", v.ID, v.Delta); err != nil {
 				fmt.Println(err)
 			}
 		} else {
-			if _, err = tx.Exec(ctx, "batch insert", v.ID, v.Value, v.MType); err != nil {
+			if _, err = tx.Exec(ctx, "batch insert gauge", v.ID, v.Value); err != nil {
 				fmt.Println(err)
 			}
 		}

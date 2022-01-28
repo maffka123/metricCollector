@@ -2,9 +2,9 @@ package storage
 
 import (
 	"fmt"
-	"time"
-
+	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
+	"time"
 )
 
 type InMemoryDB struct {
@@ -107,6 +107,19 @@ func (db *InMemoryDB) RestoreDB() error {
 	return nil
 }
 
+var zeroDB = &InMemoryDB{}
+
 func (db *InMemoryDB) CloseConnection() {
-	db = &InMemoryDB{}
+	*db = *zeroDB
+}
+
+func (db *InMemoryDB) BatchInsert(ms []models.Metrics) {
+	for _, m := range ms {
+		if m.MType == "counter" {
+			db.InsertCounter(m.ID, *m.Delta)
+		} else {
+			db.InsertGouge(m.ID, *m.Value)
+		}
+	}
+
 }

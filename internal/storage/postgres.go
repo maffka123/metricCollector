@@ -33,7 +33,7 @@ func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
 	}
 	db.Conn = conn
 
-	_, err = db.Conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS metrics (id serial PRIMARY KEY, name VARCHAR (20) UNIQUE NOT NULL, value float, type VARCHAR (10) NOT NULL);")
+	_, err = db.Conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS metrics (id serial PRIMARY KEY, name VARCHAR (30) UNIQUE NOT NULL, value float, type VARCHAR (10) NOT NULL);")
 	if err != nil {
 		fmt.Printf("Table creation failed: %v\n", err)
 	}

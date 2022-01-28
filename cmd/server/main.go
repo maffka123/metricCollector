@@ -23,12 +23,9 @@ func main() {
 	} else {
 		db = storage.Connect(&cfg)
 	}
+	defer db.CloseConnection()
 
 	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
-
-	if cfg.DBpath != "" {
-		r.Get("/ping", handlers.GetHandlerPing(db))
-	}
 
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 

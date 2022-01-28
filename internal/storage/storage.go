@@ -10,4 +10,5 @@ type Repositories interface {
 	SelectAll() ([]string, []string)
 	DumpDB() error
 	RestoreDB() error
+	CloseConnection()
 }

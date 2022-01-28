@@ -106,3 +106,7 @@ func (db *InMemoryDB) RestoreDB() error {
 
 	return nil
 }
+
+func (db *InMemoryDB) CloseConnection() {
+	db = &InMemoryDB{}
+}

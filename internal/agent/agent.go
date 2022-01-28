@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,22 +13,16 @@ import (
 	"time"
 )
 
-type sendDataFunc func(context.Context, config.Config, *http.Client, *collector.Metric) error
+type sendDataFunc func(context.Context, config.Config, *http.Client, []*collector.Metric) error
 
 //initMetrics initializes list with all metrics of interest, send first values to the server
 func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch chan models.MetricList) {
 	//ctx, cancel := context.WithCancel(ctx)
 	metricList := collector.GetAllMetrics(&cfg.Key)
-	for _, value := range metricList {
-		select {
-		case <-ctx.Done():
-			fmt.Println("context canceled")
-		default:
-			err := simpleBackoff(ctx, sendJSONData, cfg, client, value)
-			if err != nil {
-				ch <- models.MetricList{MetricList: nil, Err: err}
-			}
-		}
+
+	err := simpleBackoff(ctx, sendJSONData, cfg, client, metricList)
+	if err != nil {
+		ch <- models.MetricList{MetricList: nil, Err: err}
 	}
 	a := models.MetricList{MetricList: metricList, Err: nil}
 	ch <- a
@@ -50,24 +45,33 @@ func UpdateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 }
 
 //sendJSONData sends metric in json format to the server.
-func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m *collector.Metric) error {
-	url := fmt.Sprintf("http://%s/update/", cfg.Endpoint)
+func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m []*collector.Metric) error {
+	url := fmt.Sprintf("http://%s/updates/", cfg.Endpoint)
 
 	metricToSend, err := json.Marshal(m)
-	fmt.Println(m.Name)
+
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(metricToSend))
+	// gzip data
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	gz.Write(metricToSend)
+	gz.Close()
+
+	// create a request
+	request, err := http.NewRequest(http.MethodPost, url, &buf)
 	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("Content-Encoding", "gzip")
 
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
+	// execute the request
 	response, requestErr := client.Do(request)
 	if requestErr != nil {
 		fmt.Println(requestErr)
@@ -87,11 +91,9 @@ func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, cli
 		select {
 		case <-t:
 			fmt.Println("Sending all metrics")
-			for _, value := range metricList {
-				err := simpleBackoff(ctx, sendJSONData, cfg, client, value)
-				if err != nil {
-					er <- err
-				}
+			err := simpleBackoff(ctx, sendJSONData, cfg, client, metricList)
+			if err != nil {
+				er <- err
 			}
 		case <-ctx.Done():
 			fmt.Println("context canceled")
@@ -100,7 +102,7 @@ func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, cli
 }
 
 // simpleBackoff repeats call to a function in case of an error
-func simpleBackoff(ctx context.Context, f sendDataFunc, cfg config.Config, c *http.Client, m *collector.Metric) error {
+func simpleBackoff(ctx context.Context, f sendDataFunc, cfg config.Config, c *http.Client, m []*collector.Metric) error {
 	var err error
 backoff:
 	for i := 0; i < cfg.Retries; i++ {

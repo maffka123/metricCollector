@@ -208,6 +208,7 @@ func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
 
 func GetHandlerPing(db storage.Repositories) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		newDB := db.(*storage.PGDB)
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
@@ -220,5 +221,41 @@ func GetHandlerPing(db storage.Repositories) http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 
+	}
+}
+
+func PostHandlerUpdates(db storage.Repositories, dbUpdated chan time.Time, key *string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var ms []models.Metrics
+		err := decoder.Decode(&ms)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("400 - Metric json cannot be decoded: %s", err), http.StatusBadRequest)
+			return
+		}
+
+		for _, m := range ms {
+
+			if m.MType == "counter" {
+				db.InsertCounter(m.ID, *m.Delta)
+				fmt.Printf("Counter: %s %d\n", m.ID, *m.Delta)
+			} else {
+				db.InsertGouge(m.ID, *m.Value)
+			}
+
+			if key != nil && *key != "" {
+				err := m.CompareHash(*key)
+				if err != nil {
+					http.Error(w, "400 - Hashes do not agree", http.StatusBadRequest)
+					return
+				}
+			}
+		}
+		w.Header().Set("application-type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok}`))
+		fmt.Printf("Got metrics: %d\n", len(ms))
+		dbUpdated <- time.Now()
 	}
 }

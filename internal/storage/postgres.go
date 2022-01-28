@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/maffka123/metricCollector/internal/server/config"
 	"os"
 	"time"
@@ -15,7 +15,7 @@ type PGDB struct {
 	StoreFile     string        `json:"-"`
 	Restore       bool          `json:"-"`
 	path          string        `json:"-"`
-	Conn          *pgx.Conn     `json:"-"`
+	Conn          *pgxpool.Pool `json:"-"`
 }
 
 func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
@@ -25,7 +25,7 @@ func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
 		Restore:       cfg.Restore,
 		path:          cfg.DBpath,
 	}
-	conn, err := pgx.Connect(context.Background(), cfg.DBpath)
+	conn, err := pgxpool.Connect(context.Background(), cfg.DBpath)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
@@ -167,4 +167,8 @@ func (db *PGDB) ValueFromGouge(s string) float64 {
 	}
 
 	return val
+}
+
+func (db *PGDB) CloseConnection() {
+	db.Conn.Close()
 }

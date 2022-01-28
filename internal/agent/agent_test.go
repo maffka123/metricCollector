@@ -82,7 +82,8 @@ func Test_sendData(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gauge", Key: &cfg.Key}}},
+		//{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gauge", Key: &cfg.Key}}},
+		{name: "test1", args: args{m: &collector.Metric{Name: "Count1", Type: "counter", Key: &cfg.Key}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

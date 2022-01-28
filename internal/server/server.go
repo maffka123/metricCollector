@@ -8,7 +8,7 @@ import (
 
 /* DealWithDumps configures db dumping options: if store interval is >0 then it will be written asynchonousely
 if store interavl is 0, dump will be triggered right after db change*/
-func DealWithDumps(cfg *config.Config, db *storage.InMemoryDB, dbUpdated chan time.Time) {
+func DealWithDumps(cfg *config.Config, db storage.Repositories, dbUpdated chan time.Time) {
 
 	if cfg.StoreFile != "" && cfg.StoreInterval != 0 {
 		storeTicker := time.NewTicker(cfg.StoreInterval)
@@ -23,7 +23,7 @@ func DealWithDumps(cfg *config.Config, db *storage.InMemoryDB, dbUpdated chan ti
 }
 
 // runDump starts infinite loop to dump db asynchronesely
-func runDump(c <-chan time.Time, db *storage.InMemoryDB) {
+func runDump(c <-chan time.Time, db storage.Repositories) {
 	for {
 		<-c
 		db.DumpDB()

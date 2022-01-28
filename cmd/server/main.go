@@ -17,13 +17,17 @@ import (
 func main() {
 	cfg := config.InitConfig()
 
-	db := storage.Connect(&cfg)
+	var db storage.Repositories
+	if cfg.DBpath != "" {
+		db = storage.ConnectPG(context.Background(), &cfg)
+	} else {
+		db = storage.Connect(&cfg)
+	}
 
 	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
 
 	if cfg.DBpath != "" {
-		pg := storage.ConnectPG(context.Background(), &cfg)
-		r.Get("/ping", handlers.GetHandlerPing(pg))
+		r.Get("/ping", handlers.GetHandlerPing(db))
 	}
 
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}

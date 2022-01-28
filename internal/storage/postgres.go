@@ -29,11 +29,14 @@ func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+		return &db
 	}
 	db.Conn = conn
 
-	db.Conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS metrics (id serial PRIMARY KEY, name string UNIQUE NOT NULL, value float, type VARCHAR (10) NOT NULL);")
+	_, err = db.Conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS metrics (id serial PRIMARY KEY, name VARCHAR (20) UNIQUE NOT NULL, value float, type VARCHAR (10) NOT NULL);")
+	if err != nil {
+		fmt.Printf("Table creation failed: %v\n", err)
+	}
 
 	if cfg.Restore {
 		err := db.RestoreDB()
@@ -99,41 +102,69 @@ func (db *PGDB) SelectAll() ([]string, []string) {
 }
 
 func (db *PGDB) InsertGouge(name string, val float64) {
-	fmt.Println("not implemented")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := db.Conn.Exec(ctx, `INSERT INTO metrics (name, value, type)
+					VALUES($1,$2,'gauge') 
+					ON CONFLICT (name) DO 
+	    		UPDATE SET value = $2;`, name, val)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (db *PGDB) InsertCounter(name string, val int64) {
-	fmt.Println("not implemented")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := db.Conn.Exec(ctx, `INSERT INTO metrics (name, value, type)
+					VALUES($1,$2, 'counter') 
+					ON CONFLICT (name) DO 
+	    		UPDATE SET value = $2;`, name, val)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (db *PGDB) NameInGouge(s string) bool {
-	fmt.Println("not implemented")
-	return false
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var val float64
+	row := db.Conn.QueryRow(ctx, "SELECT value FROM metrics WHERE name=$N", s)
+	err := row.Scan(&val)
+	return err == nil
 }
 
 func (db *PGDB) NameInCounter(s string) bool {
-	fmt.Println("not implemented")
-	return false
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var val int64
+	row := db.Conn.QueryRow(ctx, "SELECT value FROM metrics WHERE name=$1", s)
+	err := row.Scan(&val)
+	return err == nil
 }
 
 func (db *PGDB) ValueFromCounter(s string) int64 {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	var val int64
-	row, err := db.Conn.Query(context.Background(), fmt.Sprintf("SELECT value FROM metrics WHERE name=%s", s))
+	row := db.Conn.QueryRow(ctx, "SELECT value FROM metrics WHERE name=$1", s)
+	err := row.Scan(&val)
 	if err != nil {
 		fmt.Printf("Select counter failed: %s", err)
 	}
-	defer row.Close()
-	row.Scan(&val)
+
 	return val
 }
 
 func (db *PGDB) ValueFromGouge(s string) float64 {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	var val float64
-	row, err := db.Conn.Query(context.Background(), fmt.Sprintf("SELECT value FROM metrics WHERE name=%s", s))
+	row := db.Conn.QueryRow(ctx, "SELECT value FROM metrics WHERE name=$1", s)
+	err := row.Scan(&val)
 	if err != nil {
 		fmt.Printf("Select counter failed: %s", err)
 	}
-	defer row.Close()
-	row.Scan(&val)
+
 	return val
 }

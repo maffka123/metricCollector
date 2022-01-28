@@ -206,9 +206,13 @@ func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
 	}
 }
 
-func GetHandlerPing(db *storage.PGDB) http.HandlerFunc {
+func GetHandlerPing(db storage.Repositories) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := db.Conn.Ping(context.Background())
+		newDB := db.(*storage.PGDB)
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+		err := newDB.Conn.Ping(ctx)
+
 		if err != nil {
 			http.Error(w, "500 - Ping failed", http.StatusInternalServerError)
 		}

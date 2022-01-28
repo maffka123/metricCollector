@@ -188,6 +188,11 @@ func (db *PGDB) BatchInsert(m []models.Metrics) {
 													VALUES($1,$2,'counter') 
 													ON CONFLICT (name) DO 
 												UPDATE SET value = metrics.value+$2;`)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	_, err = tx.Prepare(ctx, "batch insert gauge", `INSERT INTO metrics (name, value, type)
 												VALUES($1,$2,'gauge') 
 												ON CONFLICT (name) DO 

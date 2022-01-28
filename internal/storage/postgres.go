@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
 	"os"
 	"time"
@@ -171,4 +172,41 @@ func (db *PGDB) ValueFromGouge(s string) float64 {
 
 func (db *PGDB) CloseConnection() {
 	db.Conn.Close()
+}
+
+func (db *PGDB) BatchInsert(m []models.Metrics) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	tx, err := db.Conn.Begin(ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Prepare(ctx, "batch insert", `INSERT INTO metrics (name, value, type)
+													VALUES($1,$2,$3) 
+													ON CONFLICT (name) DO 
+												UPDATE SET value = metrics.value+$2;`)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for _, v := range m {
+		if v.MType == "counter" {
+			if _, err = tx.Exec(ctx, "batch insert", v.ID, v.Delta, v.MType); err != nil {
+				fmt.Println(err)
+			}
+		} else {
+			if _, err = tx.Exec(ctx, "batch insert", v.ID, v.Value, v.MType); err != nil {
+				fmt.Println(err)
+			}
+		}
+
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		fmt.Println(err)
+	}
+
 }

@@ -33,11 +33,11 @@ func Test_simpleBackoff(t *testing.T) {
 	cfg.Retries = 3
 	ctx := context.Background()
 
-	m := &collector.Metric{Name: "PollCount", Type: "counter"}
-	fErr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m *collector.Metric) error {
+	m := []*collector.Metric{{Name: "PollCount", Type: "counter"}}
+	fErr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric) error {
 		return errors.New("some error")
 	})
-	fNoerr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m *collector.Metric) error {
+	fNoerr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric) error {
 		select {
 		case <-timer.C:
 			return nil
@@ -75,7 +75,7 @@ func Test_sendData(t *testing.T) {
 	ctx := context.Background()
 
 	type args struct {
-		m *collector.Metric
+		m []*collector.Metric
 	}
 	tests := []struct {
 		name    string
@@ -83,7 +83,7 @@ func Test_sendData(t *testing.T) {
 		wantErr bool
 	}{
 		//{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gauge", Key: &cfg.Key}}},
-		{name: "test1", args: args{m: &collector.Metric{Name: "Count1", Type: "counter", Key: &cfg.Key}}},
+		{name: "test1", args: args{m: []*collector.Metric{{Name: "Count1", Type: "counter", Key: &cfg.Key}}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

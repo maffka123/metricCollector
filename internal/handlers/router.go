@@ -36,7 +36,7 @@ func MetricRouter(db storage.Repositories, key *string) (chi.Router, chan time.T
 	})
 
 	r.Get("/", Conveyor(GetAllNames(db), packGZIP))
-	r.Post("/ping", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "200 - Metric type unknown!", http.StatusOK)
 	})
 	return r, dbUpdated

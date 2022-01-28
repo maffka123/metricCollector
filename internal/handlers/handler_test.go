@@ -31,6 +31,7 @@ func prepConf() *config.Config {
 func TestPostHandlerGouge(t *testing.T) {
 	cfg := prepConf()
 	db := storage.Connect(cfg)
+
 	type args struct {
 		db storage.Repositories
 	}

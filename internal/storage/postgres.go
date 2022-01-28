@@ -25,7 +25,7 @@ func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
 		Restore:       cfg.Restore,
 		path:          cfg.DBpath,
 	}
-	conn, err := pgx.Connect(context.Background(), "postgres://"+cfg.DBpath)
+	conn, err := pgx.Connect(context.Background(), cfg.DBpath)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)

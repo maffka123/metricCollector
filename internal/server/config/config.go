@@ -23,7 +23,7 @@ func InitConfig() Config {
 	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "how often to dump db into the file")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "name and location of the file path/to/file.json")
 	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
-	flag.StringVar(&cfg.DBpath, "d", "postgres://postgres:pass@localhost:5432/test", "path for connection with pg: postgres://username:password@localhost:5432/database_name")
+	flag.StringVar(&cfg.DBpath, "d", "", "path for connection with pg: postgres://postgres:pass@localhost:5432/test")
 
 	flag.Parse()
 	internal.GetConfig(&cfg)

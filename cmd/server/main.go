@@ -18,13 +18,13 @@ func main() {
 	cfg := config.InitConfig()
 
 	db := storage.Connect(&cfg)
-	//pg := storage.ConnectPG(context.Background(), &cfg)
 
 	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key)
-	//r.Get("/ping", handlers.GetHandlerPing(pg))
-	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "200 - Metric type unknown!", http.StatusOK)
-	})
+
+	if cfg.DBpath != "" {
+		pg := storage.ConnectPG(context.Background(), &cfg)
+		r.Get("/ping", handlers.GetHandlerPing(pg))
+	}
 
 	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
 

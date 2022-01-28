@@ -25,7 +25,7 @@ func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
 		Restore:       cfg.Restore,
 		path:          cfg.DBpath,
 	}
-	conn, err := pgx.Connect(context.Background(), cfg.DBpath)
+	conn, err := pgx.Connect(context.Background(), "postgres://"+cfg.DBpath)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
@@ -119,7 +119,7 @@ func (db *PGDB) InsertCounter(name string, val int64) {
 	_, err := db.Conn.Exec(ctx, `INSERT INTO metrics (name, value, type)
 					VALUES($1,$2, 'counter') 
 					ON CONFLICT (name) DO 
-	    		UPDATE SET value = $2;`, name, val)
+	    		UPDATE SET value = metrics.value+$2;`, name, val)
 	if err != nil {
 		fmt.Println(err)
 	}

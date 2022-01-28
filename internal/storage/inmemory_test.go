@@ -2,15 +2,18 @@ package storage
 
 import (
 	"fmt"
+	"github.com/caarlos0/env/v6"
+	globalConf "github.com/maffka123/metricCollector/internal/config"
+	"github.com/maffka123/metricCollector/internal/server/config"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"log"
 	"os"
 	"reflect"
 	"testing"
-
-	"github.com/caarlos0/env/v6"
-	"github.com/maffka123/metricCollector/internal/server/config"
-	"github.com/stretchr/testify/assert"
 )
+
+var logger *zap.Logger = globalConf.InitLogger(true)
 
 func TestInMemoryDb_InsertCounter(t *testing.T) {
 	type fields struct {
@@ -246,7 +249,7 @@ func prepConf() *config.Config {
 
 func TestInMemoryDB_DumpDB(t *testing.T) {
 	cfg := prepConf()
-	db := Connect(cfg)
+	db := Connect(cfg, logger)
 	db.Counter["c1"] = 1
 	db.Counter["c2"] = 2
 	db.Gouge["g1"] = 1.5
@@ -276,7 +279,7 @@ func TestInMemoryDB_DumpDB(t *testing.T) {
 // This test is connected to the test above, it cheks the file created above
 func TestInMemoryDB_RestoreDB(t *testing.T) {
 	cfg := prepConf()
-	db := Connect(cfg)
+	db := Connect(cfg, logger)
 	db.StoreFile = "testdata/dump.json"
 	type want struct {
 		counter map[string]int64

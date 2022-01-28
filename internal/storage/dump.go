@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"github.com/go-errors/errors"
 	"os"
 )
 
@@ -13,7 +14,7 @@ type producer struct {
 func NewProducer(filename string) (*producer, error) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 	return &producer{
 		file:    file,
@@ -33,7 +34,7 @@ type consumer struct {
 func NewConsumer(fileName string) (*consumer, error) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 	return &consumer{
 		file:    file,

@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
-	"os"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -17,33 +17,34 @@ type PGDB struct {
 	Restore       bool          `json:"-"`
 	path          string        `json:"-"`
 	Conn          *pgxpool.Pool `json:"-"`
+	log           *zap.Logger   `json:"-"`
 }
 
-func ConnectPG(ctx context.Context, cfg *config.Config) *PGDB {
+func ConnectPG(ctx context.Context, cfg *config.Config, logger *zap.Logger) *PGDB {
 	db := PGDB{
 		StoreInterval: cfg.StoreInterval,
 		StoreFile:     cfg.StoreFile,
 		Restore:       cfg.Restore,
 		path:          cfg.DBpath,
+		log:           logger,
 	}
 	conn, err := pgxpool.Connect(context.Background(), cfg.DBpath)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		db.log.Error("unable to connect to database: ", zap.Error(err))
 		return &db
 	}
 	db.Conn = conn
 
 	_, err = db.Conn.Exec(ctx, "CREATE TABLE IF NOT EXISTS metrics (id serial PRIMARY KEY, name VARCHAR (30) UNIQUE NOT NULL, value float, type VARCHAR (10) NOT NULL);")
 	if err != nil {
-		fmt.Printf("Table creation failed: %v\n", err)
+		db.log.Error("table creation failed: ", zap.Error(err))
 	}
 
 	if cfg.Restore {
 		err := db.RestoreDB()
 		if err != nil {
-			fmt.Println(fmt.Errorf("restore failed: %s", err))
-			fmt.Println("Restore failed, starting with empty db")
+			db.log.Error("restore failed, starting with empty db: ", zap.Error(err))
 		}
 	}
 
@@ -72,7 +73,7 @@ func (db *PGDB) SelectAll() ([]string, []string) {
 
 	row, err := db.Conn.Query(context.Background(), "SELECT name, value FROM metrics WHERE type='counter'")
 	if err != nil {
-		fmt.Printf("Select counter failed: %s", err)
+		db.log.Error("Select counter failed:", zap.Error(err))
 	}
 	defer row.Close()
 
@@ -80,14 +81,14 @@ func (db *PGDB) SelectAll() ([]string, []string) {
 		var r counterRow
 		err := row.Scan(&r.name, &r.value)
 		if err != nil {
-			fmt.Printf("Select counter failed: %s", err)
+			db.log.Error("Select counter failed:", zap.Error(err))
 		}
 		listCounter = append(listCounter, fmt.Sprintf("[%s]: [%d]\n", r.name, r.value))
 	}
 
 	row, err = db.Conn.Query(context.Background(), "SELECT name, value FROM metrics WHERE type='gauge'")
 	if err != nil {
-		fmt.Printf("Select gauge failed: %s", err)
+		db.log.Error("Select gauge failed: %s", zap.Error(err))
 	}
 	defer row.Close()
 
@@ -95,7 +96,7 @@ func (db *PGDB) SelectAll() ([]string, []string) {
 		var r gaugeRow
 		err := row.Scan(&r.name, &r.value)
 		if err != nil {
-			fmt.Printf("Select gauge failed: %s", err)
+			db.log.Error("Select gauge failed: %s", zap.Error(err))
 		}
 		listGouge = append(listGouge, fmt.Sprintf("[%s]: [%.3f]\n", r.name, r.value))
 	}
@@ -110,7 +111,7 @@ func (db *PGDB) InsertGouge(name string, val float64) {
 					ON CONFLICT (name) DO 
 	    		UPDATE SET value = $2;`, name, val)
 	if err != nil {
-		fmt.Println(err)
+		db.log.Error("Insert gauge failed: ", zap.Error(err))
 	}
 }
 
@@ -122,7 +123,7 @@ func (db *PGDB) InsertCounter(name string, val int64) {
 					ON CONFLICT (name) DO 
 	    		UPDATE SET value = metrics.value+$2;`, name, val)
 	if err != nil {
-		fmt.Println(err)
+		db.log.Error("Insert counter failed: ", zap.Error(err))
 	}
 }
 
@@ -151,7 +152,7 @@ func (db *PGDB) ValueFromCounter(s string) int64 {
 	row := db.Conn.QueryRow(ctx, "SELECT value FROM metrics WHERE name=$1", s)
 	err := row.Scan(&val)
 	if err != nil {
-		fmt.Printf("Select counter failed: %s", err)
+		db.log.Error("select gauge failed: ", zap.Error(err))
 	}
 
 	return val
@@ -164,7 +165,7 @@ func (db *PGDB) ValueFromGouge(s string) float64 {
 	row := db.Conn.QueryRow(ctx, "SELECT value FROM metrics WHERE name=$1", s)
 	err := row.Scan(&val)
 	if err != nil {
-		fmt.Printf("Select counter failed: %s", err)
+		db.log.Error("select counter failed: ", zap.Error(err))
 	}
 
 	return val
@@ -180,7 +181,7 @@ func (db *PGDB) BatchInsert(m []models.Metrics) {
 
 	tx, err := db.Conn.Begin(ctx)
 	if err != nil {
-		fmt.Println(err)
+		db.log.Error("starting connection failed: ", zap.Error(err))
 	}
 	defer tx.Rollback(ctx)
 
@@ -190,7 +191,7 @@ func (db *PGDB) BatchInsert(m []models.Metrics) {
 												UPDATE SET value = metrics.value+$2;`)
 
 	if err != nil {
-		fmt.Println(err)
+		db.log.Error("prep counter failed: ", zap.Error(err))
 	}
 
 	_, err = tx.Prepare(ctx, "batch insert gauge", `INSERT INTO metrics (name, value, type)
@@ -198,24 +199,24 @@ func (db *PGDB) BatchInsert(m []models.Metrics) {
 												ON CONFLICT (name) DO 
 											UPDATE SET value = $2;`)
 	if err != nil {
-		fmt.Println(err)
+		db.log.Error("prep gauge failed: ", zap.Error(err))
 	}
 
 	for _, v := range m {
 		if v.MType == "counter" {
 			if _, err = tx.Exec(ctx, "batch insert counter", v.ID, v.Delta); err != nil {
-				fmt.Println(err)
+				db.log.Error("Insert counter failed: ", zap.Error(err))
 			}
 		} else {
 			if _, err = tx.Exec(ctx, "batch insert gauge", v.ID, v.Value); err != nil {
-				fmt.Println(err)
+				db.log.Error("Insert gauge failed: ", zap.Error(err))
 			}
 		}
 
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		fmt.Println(err)
+		db.log.Error("Commit failed: ", zap.Error(err))
 	}
 
 }

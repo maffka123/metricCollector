@@ -7,13 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"log"
-
 	"github.com/caarlos0/env/v6"
 	"github.com/maffka123/metricCollector/internal/agent/config"
 	"github.com/maffka123/metricCollector/internal/collector"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"log"
 )
+
+var logger *zap.Logger = zap.NewExample()
 
 func prepConf() config.Config {
 	var cfg config.Config
@@ -34,10 +36,10 @@ func Test_simpleBackoff(t *testing.T) {
 	ctx := context.Background()
 
 	m := []*collector.Metric{{Name: "PollCount", Type: "counter"}}
-	fErr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric) error {
+	fErr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric, logger *zap.Logger) error {
 		return errors.New("some error")
 	})
-	fNoerr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric) error {
+	fNoerr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric, logger *zap.Logger) error {
 		select {
 		case <-timer.C:
 			return nil
@@ -60,7 +62,7 @@ func Test_simpleBackoff(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			timer.Reset(delay)
-			err := simpleBackoff(ctx, tt.args.f, cfg, client, m)
+			err := simpleBackoff(ctx, tt.args.f, cfg, client, m, logger)
 			assert.Equal(t, tt.wantErr, err)
 
 		})
@@ -87,7 +89,7 @@ func Test_sendData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := sendJSONData(ctx, cfg, client, tt.args.m)
+			err := sendJSONData(ctx, cfg, client, tt.args.m, logger)
 			assert.Error(t, err)
 		})
 	}

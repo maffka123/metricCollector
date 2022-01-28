@@ -4,17 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/maffka123/metricCollector/internal/handlers/templates"
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/storage"
+	"go.uber.org/zap"
+	"html/template"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type metricsList struct {
@@ -27,7 +26,7 @@ type allMetricsList struct {
 }
 
 //PostHandlerGouge processes POST request to add/replace value of a gouge metric
-func PostHandlerGouge(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
+func PostHandlerGouge(db storage.Repositories, dbUpdated chan time.Time, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		q := strings.Split(r.URL.String(), "/")
@@ -42,13 +41,13 @@ func PostHandlerGouge(db storage.Repositories, dbUpdated chan time.Time) http.Ha
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
-		fmt.Printf("Got gauge: %s\n", q[len(q)-2])
+		logger.Debug("Got gauge: ", zap.String("len", q[len(q)-2]))
 		dbUpdated <- time.Now()
 	}
 }
 
 //PostHandlerCounter processes POST request to add/replace value of a counter metric
-func PostHandlerCounter(db storage.Repositories, dbUpdated chan time.Time) http.HandlerFunc {
+func PostHandlerCounter(db storage.Repositories, dbUpdated chan time.Time, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := strings.Split(strings.Trim(r.URL.String(), "/"), "/")
 
@@ -61,7 +60,7 @@ func PostHandlerCounter(db storage.Repositories, dbUpdated chan time.Time) http.
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
-		fmt.Printf("Got counter: %s\n", q[len(q)-2])
+		logger.Debug("Got counter: ", zap.String("len", q[len(q)-2]))
 		dbUpdated <- time.Now()
 	}
 }
@@ -131,7 +130,7 @@ func GetAllNames(db storage.Repositories) http.HandlerFunc {
 	}
 }
 
-func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time, key *string) http.HandlerFunc {
+func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time, key *string, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var m models.Metrics
@@ -143,7 +142,6 @@ func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time, key *s
 		}
 		if m.MType == "counter" {
 			db.InsertCounter(m.ID, *m.Delta)
-			fmt.Printf("Counter: %s %d\n", m.ID, *m.Delta)
 		} else {
 			db.InsertGouge(m.ID, *m.Value)
 		}
@@ -159,12 +157,12 @@ func PostHandlerUpdate(db storage.Repositories, dbUpdated chan time.Time, key *s
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
-		fmt.Printf("Got metric: %s\n", m.ID)
+		logger.Debug("Got metric: ", zap.String("name", m.ID))
 		dbUpdated <- time.Now()
 	}
 }
 
-func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
+func PostHandlerReturn(db storage.Repositories, key *string, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var m models.Metrics
@@ -197,10 +195,8 @@ func PostHandlerReturn(db storage.Repositories, key *string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		mJSON, err := json.Marshal(m)
-		fmt.Println(string(mJSON))
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			logger.Error("JSON marshal failed: ", zap.Error(err))
 		}
 		w.Write([]byte(mJSON))
 	}
@@ -224,7 +220,7 @@ func GetHandlerPing(db storage.Repositories) http.HandlerFunc {
 	}
 }
 
-func PostHandlerUpdates(db storage.Repositories, dbUpdated chan time.Time, key *string) http.HandlerFunc {
+func PostHandlerUpdates(db storage.Repositories, dbUpdated chan time.Time, key *string, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		var ms []models.Metrics
@@ -240,7 +236,8 @@ func PostHandlerUpdates(db storage.Repositories, dbUpdated chan time.Time, key *
 		w.Header().Set("application-type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok}`))
-		fmt.Printf("Got metrics: %d\n", len(ms))
+
+		logger.Debug("got", zap.String("metrics n", string(len(ms))))
 		dbUpdated <- time.Now()
 	}
 }

@@ -4,19 +4,22 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/caarlos0/env/v6"
+	globalConf "github.com/maffka123/metricCollector/internal/config"
+	"github.com/maffka123/metricCollector/internal/models"
+	"github.com/maffka123/metricCollector/internal/server/config"
+	"github.com/maffka123/metricCollector/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/caarlos0/env/v6"
-	"github.com/maffka123/metricCollector/internal/models"
-	"github.com/maffka123/metricCollector/internal/server/config"
-	"github.com/maffka123/metricCollector/internal/storage"
-	"github.com/stretchr/testify/assert"
 )
+
+var logger *zap.Logger = globalConf.InitLogger(true)
 
 func prepConf() *config.Config {
 	var cfg config.Config
@@ -30,7 +33,7 @@ func prepConf() *config.Config {
 
 func TestPostHandlerGouge(t *testing.T) {
 	cfg := prepConf()
-	db := storage.Connect(cfg)
+	db := storage.Connect(cfg, logger)
 
 	type args struct {
 		db storage.Repositories
@@ -69,7 +72,7 @@ func TestPostHandlerGouge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, dbUpdated := MetricRouter(db, &cfg.Key)
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
 
 			go func() { <-dbUpdated }()
 
@@ -90,7 +93,7 @@ func TestPostHandlerGouge(t *testing.T) {
 
 func TestPostHandlerCounter(t *testing.T) {
 	cfg := prepConf()
-	db := storage.Connect(cfg)
+	db := storage.Connect(cfg, logger)
 	type args struct {
 		db storage.Repositories
 	}
@@ -128,7 +131,7 @@ func TestPostHandlerCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, dbUpdated := MetricRouter(db, &cfg.Key)
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
 			go func() { <-dbUpdated }()
 
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
@@ -148,7 +151,7 @@ func TestPostHandlerCounter(t *testing.T) {
 
 func TestGetHandlerValue(t *testing.T) {
 	cfg := prepConf()
-	db := storage.Connect(cfg)
+	db := storage.Connect(cfg, logger)
 	db.InsertCounter("PollCount", 3)
 	db.InsertGouge("Alloc", 1)
 	type args struct {
@@ -198,7 +201,7 @@ func TestGetHandlerValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, dbUpdated := MetricRouter(db, &cfg.Key)
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
 			go func() { <-dbUpdated }()
 
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
@@ -220,7 +223,7 @@ func TestGetHandlerValue(t *testing.T) {
 
 func TestGetAllNames(t *testing.T) {
 	cfg := prepConf()
-	db := storage.Connect(cfg)
+	db := storage.Connect(cfg, logger)
 	db.InsertCounter("PollCount", 3)
 	db.InsertGouge("Alloc", 1.5)
 	type args struct {
@@ -250,7 +253,7 @@ func TestGetAllNames(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, dbUpdated := MetricRouter(db, &cfg.Key)
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
 			go func() { <-dbUpdated }()
 
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
@@ -274,7 +277,7 @@ func TestPostHandlerUpdate(t *testing.T) {
 	f := float64(1.5)
 	cfg := prepConf()
 	cfg.Key = "test"
-	db := storage.Connect(cfg)
+	db := storage.Connect(cfg, logger)
 	type args struct {
 		db storage.Repositories
 	}
@@ -307,7 +310,7 @@ func TestPostHandlerUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			r, dbUpdated := MetricRouter(db, &cfg.Key)
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
 			go func() { <-dbUpdated }()
 			body, _ := json.Marshal(tt.request.body)
 			request := httptest.NewRequest(http.MethodPost, tt.request.request, bytes.NewBuffer(body))
@@ -328,7 +331,7 @@ func TestPostHandlerUpdate(t *testing.T) {
 func TestPostHandlerReturn(t *testing.T) {
 	f := float64(1.5)
 	cfg := prepConf()
-	db := storage.Connect(cfg)
+	db := storage.Connect(cfg, logger)
 	cfg.Key = "test"
 	type args struct {
 		db storage.Repositories
@@ -372,7 +375,7 @@ func TestPostHandlerReturn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db.InsertGouge("Alloc", float64(1.5))
-			r, dbUpdated := MetricRouter(db, &cfg.Key)
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
 			go func() { <-dbUpdated }()
 			body, _ := json.Marshal(tt.request.body)
 			request := httptest.NewRequest(http.MethodPost, tt.request.request, bytes.NewBuffer(body))

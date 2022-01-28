@@ -20,11 +20,11 @@ func (m *Metrics) CalcHash(key string) {
 	m.Hash = m.newHash(key)
 }
 
-func (m *Metrics) CompareHash(key string) *error {
+func (m *Metrics) CompareHash(key string) error {
 	hash := m.newHash(key)
 	if hash != m.Hash {
 		err := errors.New("hashes are not equal")
-		return &err
+		return err
 	}
 	return nil
 }

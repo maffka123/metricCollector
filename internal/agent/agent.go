@@ -37,6 +37,7 @@ func UpdateMetrics(ctx context.Context, t <-chan time.Time, metricList []*collec
 			logger.Info("Updating all metrics")
 			for _, value := range metricList {
 				value.Update()
+				value.Print()
 			}
 		case <-ctx.Done():
 			logger.Info("context canceled")

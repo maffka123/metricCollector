@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"github.com/maffka123/metricCollector/internal/agent"
 	"github.com/maffka123/metricCollector/internal/agent/config"
 	"github.com/maffka123/metricCollector/internal/agent/models"
+	globalConf "github.com/maffka123/metricCollector/internal/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,18 +16,23 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		panic("unexpected error: " + err.Error())
+		panic(errors.Unwrap(err))
 	}
 }
 
 func run() error {
 	// for sending metrics to the server
-	fmt.Println("starting the agent")
+
 	cfg, err := config.InitConfig()
 
 	if err != nil {
 		return err
 	}
+
+	logger := globalConf.InitLogger(cfg.Debug)
+	defer logger.Sync()
+
+	logger.Info("Agent config initialized")
 
 	client := &http.Client{}
 
@@ -39,7 +45,7 @@ func run() error {
 	//starting list of metrices, with ability to cancel it
 	var m models.MetricList
 	ch := make(chan models.MetricList, 1)
-	go agent.InitMetrics(ctx, cfg, client, ch)
+	go agent.InitMetrics(ctx, cfg, client, ch, logger)
 
 metricList:
 	for {
@@ -60,8 +66,9 @@ metricList:
 
 	//start both tasks
 	var er chan error
-	go agent.UpdateMetrics(ctx, pollTicker.C, m.MetricList)
-	go agent.SendAllData(ctx, cfg, reportTicker.C, client, m.MetricList, er)
+	go agent.UpdateMetrics(ctx, pollTicker.C, m.MetricList, logger)
+	go agent.SendAllData(ctx, cfg, reportTicker.C, client, m.MetricList, er, logger)
+	logger.Info("Agent started")
 
 	//if signal to qiut or error from other functions received, cancel ctx
 	for {

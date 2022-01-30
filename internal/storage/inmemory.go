@@ -1,10 +1,12 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
-	"time"
-
+	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
+	"go.uber.org/zap"
+	"time"
 )
 
 type InMemoryDB struct {
@@ -13,21 +15,23 @@ type InMemoryDB struct {
 	StoreInterval time.Duration      `json:"-"`
 	StoreFile     string             `json:"-"`
 	Restore       bool               `json:"-"`
+	log           *zap.Logger        `json:"-"`
 }
 
-func Connect(cfg *config.Config) *InMemoryDB {
+func Connect(cfg *config.Config, logger *zap.Logger) *InMemoryDB {
 	db := InMemoryDB{
 		Gouge:         map[string]float64{},
 		Counter:       map[string]int64{},
 		StoreInterval: cfg.StoreInterval,
 		StoreFile:     cfg.StoreFile,
-		Restore:       cfg.Restore}
+		Restore:       cfg.Restore,
+		log:           logger,
+	}
 
 	if cfg.Restore {
 		err := db.RestoreDB()
 		if err != nil {
-			fmt.Println(fmt.Errorf("restore failed: %s", err))
-			fmt.Println("Restore failed, starting with empty db")
+			logger.Error("restore failed, starting with empty db: %s", zap.Error(errors.Unwrap(err)))
 		}
 	}
 
@@ -83,11 +87,11 @@ func (db *InMemoryDB) DumpDB() error {
 	p, err := NewProducer(db.StoreFile)
 
 	if err != nil {
-		fmt.Println("Producer initialisation failed")
+		db.log.Error("Producer initialisation failed")
 		return err
 	}
 	defer p.Close()
-	fmt.Println("Saved db")
+	db.log.Info("Saved db")
 	return p.encoder.Encode(&db)
 }
 
@@ -95,7 +99,7 @@ func (db *InMemoryDB) RestoreDB() error {
 	c, err := NewConsumer(db.StoreFile)
 
 	if err != nil {
-		fmt.Println("Consumer initialisation failed")
+		db.log.Error("Consumer initialisation failed")
 		return err
 	}
 	defer c.Close()
@@ -105,4 +109,21 @@ func (db *InMemoryDB) RestoreDB() error {
 	}
 
 	return nil
+}
+
+var zeroDB = &InMemoryDB{}
+
+func (db *InMemoryDB) CloseConnection() {
+	*db = *zeroDB
+}
+
+func (db *InMemoryDB) BatchInsert(ms []models.Metrics) {
+	for _, m := range ms {
+		if m.MType == "counter" {
+			db.InsertCounter(m.ID, *m.Delta)
+		} else {
+			db.InsertGouge(m.ID, *m.Value)
+		}
+	}
+
 }

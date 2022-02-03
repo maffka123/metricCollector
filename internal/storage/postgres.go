@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
@@ -11,12 +13,20 @@ import (
 	"time"
 )
 
+type PGinterface interface {
+	Begin(context.Context) (pgx.Tx, error)
+	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...interface{}) pgx.Row
+	Close()
+}
+
 type PGDB struct {
 	StoreInterval time.Duration `json:"-"`
 	StoreFile     string        `json:"-"`
 	Restore       bool          `json:"-"`
 	path          string        `json:"-"`
-	Conn          *pgxpool.Pool `json:"-"`
+	Conn          PGinterface   `json:"-"`
 	log           *zap.Logger   `json:"-"`
 }
 

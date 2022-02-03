@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/maffka123/metricCollector/internal/handlers/templates"
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/storage"
@@ -231,10 +232,12 @@ func (mh *MetricHandler) PostHandlerReturn(key *string) http.HandlerFunc {
 func (mh *MetricHandler) GetHandlerPing() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		newDB := mh.db.(*storage.PGDB)
+		//convert first to PGDB then to pgxpool to be able to use Ping method
+		conn := mh.db.(*storage.PGDB).Conn.(*pgxpool.Pool)
+
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
-		err := newDB.Conn.Ping(ctx)
+		err := conn.Ping(ctx)
 
 		if err != nil {
 			http.Error(w, "500 - Ping failed", http.StatusInternalServerError)

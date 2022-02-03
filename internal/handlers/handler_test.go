@@ -2,21 +2,25 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/caarlos0/env/v6"
-	globalConf "github.com/maffka123/metricCollector/internal/config"
-	"github.com/maffka123/metricCollector/internal/models"
-	"github.com/maffka123/metricCollector/internal/server/config"
-	"github.com/maffka123/metricCollector/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/caarlos0/env/v6"
+	"github.com/driftprogramming/pgxpoolmock"
+	"github.com/golang/mock/gomock"
+	globalConf "github.com/maffka123/metricCollector/internal/config"
+	"github.com/maffka123/metricCollector/internal/models"
+	"github.com/maffka123/metricCollector/internal/server/config"
+	"github.com/maffka123/metricCollector/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 var logger *zap.Logger = globalConf.InitLogger(true)
@@ -395,3 +399,135 @@ func TestPostHandlerReturn(t *testing.T) {
 		})
 	}
 }
+
+func TestPostHandlerUpdateWithPostgres(t *testing.T) {
+	f := float64(1.5)
+	cfg := prepConf()
+
+	cfg.Key = "test"
+	ctrl := gomock.NewController(t)
+	mockdb := pgxpoolmock.NewMockPgxPool(ctrl)
+	//columns := []string{"id", "name", "value", "type"}
+	//pgxRows := pgxpoolmock.NewRows(columns).AddRow(1, "Alloc", 0.5, "gauge").ToPgxRows()
+
+	mockdb.EXPECT().Exec(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("test"), nil)
+
+	db := storage.ConnectPG(context.Background(), cfg, logger)
+	db.Conn = mockdb
+
+	type want struct {
+		applicationType string
+		statusCode      int
+		valueInDB       float64
+	}
+	type request struct {
+		request string
+		body    models.Metrics
+	}
+	tests := []struct {
+		name    string
+		want    want
+		request request
+	}{
+		{
+			name: "gauge",
+			want: want{
+				applicationType: "text/plain",
+				statusCode:      200,
+				valueInDB:       1.5,
+			},
+			request: request{request: "/update/", body: models.Metrics{ID: "Alloc", MType: "gauge", Value: &f, Hash: "bd4208a757a7c5e94a4ce2975530aaddadf889c8ee627798e57e89eb066d6c3d"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
+			go func() { <-dbUpdated }()
+			body, _ := json.Marshal(tt.request.body)
+			request := httptest.NewRequest(http.MethodPost, tt.request.request, bytes.NewBuffer(body))
+			request.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, request)
+			result := w.Result()
+			defer result.Body.Close()
+
+			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.want.applicationType, result.Header.Get("Application-Type"))
+		})
+	}
+}
+
+// seems there is a bug for returning single value
+/*func TestPostHandlerReturnWithPG(t *testing.T) {
+	f := float64(1.5)
+	cfg := prepConf()
+	cfg.Key = "test"
+	ctrl := gomock.NewController(t)
+	mockdb := pgxpoolmock.NewMockPgxPool(ctrl)
+
+	pgxRows := pgxpoolmock.NewRows([]string{"value"}).AddRow(1.5).ToPgxRows()
+
+	mockdb.EXPECT().QueryRow(gomock.Any(), gomock.Any(), gomock.Any()).Return(pgxRows)
+
+	db := storage.ConnectPG(context.Background(), cfg, logger)
+	db.Conn = mockdb
+	cfg.Key = "test"
+
+	type want struct {
+		applicationType string
+		statusCode      int
+		json            models.Metrics
+	}
+	type request struct {
+		request string
+		body    models.Metrics
+	}
+	tests := []struct {
+		name    string
+		want    want
+		request request
+	}{
+		{
+			name: "gauge",
+			want: want{
+				applicationType: "application/json",
+				statusCode:      200,
+				json:            models.Metrics{ID: "Alloc", MType: "gauge", Value: &f, Hash: "bd4208a757a7c5e94a4ce2975530aaddadf889c8ee627798e57e89eb066d6c3d"},
+			},
+			request: request{request: "/value/", body: models.Metrics{ID: "Alloc", MType: "gauge", Hash: "bd4208a757a7c5e94a4ce2975530aaddadf889c8ee627798e57e89eb066d6c3d"}},
+		},
+		{
+			name: "gauge2",
+			want: want{
+				applicationType: "application/json",
+				statusCode:      200,
+				json:            models.Metrics{ID: "Alloc", MType: "gauge", Value: &f, Hash: "bd4208a757a7c5e94a4ce2975530aaddadf889c8ee627798e57e89eb066d6c3d"},
+			},
+			request: request{request: "/value/", body: models.Metrics{ID: "Alloc", MType: "gauge"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			r, dbUpdated := MetricRouter(db, &cfg.Key, logger)
+			go func() { <-dbUpdated }()
+			body, _ := json.Marshal(tt.request.body)
+			request := httptest.NewRequest(http.MethodPost, tt.request.request, bytes.NewBuffer(body))
+			request.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, request)
+			result := w.Result()
+			defer result.Body.Close()
+
+			assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			assert.Equal(t, tt.want.applicationType, result.Header.Get("Content-Type"))
+			want, _ := json.Marshal(tt.want.json)
+			bodyBytes, _ := io.ReadAll(result.Body)
+			fmt.Println(string(body))
+			assert.Equal(t, want, bodyBytes)
+		})
+	}
+}*/

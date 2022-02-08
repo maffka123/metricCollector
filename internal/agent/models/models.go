@@ -5,6 +5,6 @@ import (
 )
 
 type MetricList struct {
-	MetricList []*collector.Metric
+	MetricList []collector.MetricInterface
 	Err        error
 }

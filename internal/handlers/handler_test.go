@@ -407,8 +407,6 @@ func TestPostHandlerUpdateWithPostgres(t *testing.T) {
 	cfg.Key = "test"
 	ctrl := gomock.NewController(t)
 	mockdb := pgxpoolmock.NewMockPgxPool(ctrl)
-	//columns := []string{"id", "name", "value", "type"}
-	//pgxRows := pgxpoolmock.NewRows(columns).AddRow(1, "Alloc", 0.5, "gauge").ToPgxRows()
 
 	mockdb.EXPECT().Exec(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("test"), nil)
 

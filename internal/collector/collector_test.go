@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"testing"
 
+	"sync"
+
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMetric_Update(t *testing.T) {
+	var wg sync.WaitGroup
 	type fields struct {
 		Name    string
 		prevVal number
@@ -38,7 +41,9 @@ func TestMetric_Update(t *testing.T) {
 				Change:  tt.fields.Change,
 				Type:    tt.fields.Type,
 			}
-			m.Update()
+			wg.Add(1)
+			go m.Update(&wg)
+			wg.Wait()
 			assert.Equal(t, tt.wait.Change.Value(), m.Change.Value())
 			assert.Equal(t, tt.wait.prevVal.Value(), m.prevVal.Value())
 		})
@@ -77,10 +82,11 @@ func TestMetric_init(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metric{
-				Name: tt.fields.Name,
-				Type: tt.fields.Type,
+				Name:     tt.fields.Name,
+				Type:     tt.fields.Type,
+				memStats: memStats,
 			}
-			m.init(memStats)
+			m.init()
 			assert.Equal(t, 0, m.prevVal.integer)
 			assert.Equal(t, 0, m.Change.integer)
 			assert.NotEqual(t, 0, m.currVal.integer)
@@ -122,6 +128,49 @@ func TestMetric_MarshalJSON(t *testing.T) {
 			assert.NoError(t, err)
 			want, _ := json.Marshal(tt.want)
 			assert.Equal(t, got, want)
+		})
+	}
+}
+
+func TestPSMetric_init(t *testing.T) {
+
+	type fields struct {
+		Name string
+		Type string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{name: "test1", fields: fields{Name: "TotalMemory", Type: "gauge"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &PSMetric{
+				Name: tt.fields.Name,
+				Type: tt.fields.Type,
+			}
+			m.init()
+			assert.Equal(t, 0, m.prevVal.integer)
+			assert.Equal(t, 0, m.Change.integer)
+			assert.NotEqual(t, 0, m.currVal.integer)
+		})
+	}
+}
+
+func TestGetAllPSutilMetric(t *testing.T) {
+	key := "test"
+	tests := []struct {
+		name string
+		want []*PSMetric
+	}{
+		{name: "test1", want: []*PSMetric{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetAllPSUtilMetrics(&key)
+			assert.IsType(t, tt.want, got)
+			assert.Equal(t, got[2].Name, "CPUutilization0")
 		})
 	}
 }

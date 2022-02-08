@@ -4,8 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/maffka123/metricCollector/internal/models"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 	"math/rand"
+	"reflect"
 	"runtime"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 var runtimeMetricNameList = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction",
@@ -14,13 +20,32 @@ var runtimeMetricNameList = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUF
 	"MSpanInuse", "MSpanSys", "Mallocs", "NextGC", "NumForcedGC", "NumGC",
 	"OtherSys", "PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
 
+var psutilMetricNameList = [...]string{"TotalMemory", "FreeMemory"}
+
 type Metric struct {
+	Name     string
+	prevVal  number
+	currVal  number
+	Change   number
+	Type     string
+	Key      *string
+	memStats *runtime.MemStats
+}
+
+type PSMetric struct {
 	Name    string
 	prevVal number
 	currVal number
 	Change  number
 	Type    string
 	Key     *string
+}
+
+type MetricInterface interface {
+	init()
+	Print()
+	Update(*sync.WaitGroup)
+	MarshalJSON() ([]byte, error)
 }
 
 /*
@@ -32,8 +57,8 @@ func GetAllMetrics(k *string) []*Metric {
 	metricList := []*Metric{}
 	for _, value := range runtimeMetricNameList {
 
-		m := Metric{Name: value, Type: "gauge", Key: k}
-		m.init(memStats)
+		m := Metric{Name: value, Type: "gauge", Key: k, memStats: memStats}
+		m.init()
 		metricList = append(metricList, &m)
 	}
 
@@ -51,27 +76,39 @@ func startStats() *runtime.MemStats {
 }
 
 // init initializes starting value of the metric
-func (m *Metric) init(memStats *runtime.MemStats) {
+func (m *Metric) init() {
 	m.currVal.newNumber()
 	m.prevVal.newNumber()
 	m.Change.newNumber()
 
-	runtimeMetricByName(m, memStats)
+	m.MetricByName()
+}
+
+func (m *Metric) MetricByName() {
+	r := reflect.ValueOf(m.memStats)
+	f := reflect.Indirect(r).FieldByName(m.Name)
+
+	if f.Kind() == reflect.Float64 {
+		m.currVal.float = f.Float()
+	} else if f.Kind() == reflect.Uint64 {
+		m.currVal.integer = int(f.Uint())
+	}
 }
 
 //Print is more for debugging, print what is inside metric
 func (m *Metric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
 
-func (m *Metric) Update() {
-	memStats := &runtime.MemStats{}
-	runtime.ReadMemStats(memStats)
+func (m *Metric) Update(wg *sync.WaitGroup) {
+	defer wg.Done()
+	m.memStats = &runtime.MemStats{}
+	runtime.ReadMemStats(m.memStats)
 	m.prevVal = m.currVal
 	if m.Name == "PollCount" {
 		m.currVal.integer += 1
 	} else if m.Name == "RandomValue" {
 		m.currVal.integer = rand.Intn(100)
 	} else {
-		runtimeMetricByName(m, memStats)
+		m.MetricByName()
 	}
 
 	m.Change = m.currVal.diff(&m.prevVal)
@@ -92,4 +129,92 @@ func (m *Metric) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(newM)
+}
+
+func GetAllPSUtilMetrics(k *string) []*PSMetric {
+	metricList := []*PSMetric{}
+	for _, value := range psutilMetricNameList {
+
+		m := PSMetric{Name: value, Type: "gauge", Key: k}
+		m.init()
+		metricList = append(metricList, &m)
+	}
+
+	psMetricCPU(&metricList, k)
+	return metricList
+}
+
+// init initializes starting value of the metric
+func (m *PSMetric) init() {
+	m.currVal.newNumber()
+	m.prevVal.newNumber()
+	m.Change.newNumber()
+	m.MetricByName()
+}
+
+func (m *PSMetric) initWithVal(val any) {
+	m.currVal.newNumber()
+	m.prevVal.newNumber()
+	m.Change.newNumber()
+	switch v := val.(type) {
+	case float64:
+		m.currVal.float = v
+	case int64:
+		m.currVal.integer = int(v)
+	}
+}
+
+//Print is more for debugging, print what is inside metric
+func (m *PSMetric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
+
+func (m *PSMetric) MarshalJSON() ([]byte, error) {
+	newM := models.Metrics{}
+	newM.ID = m.Name
+	newM.MType = m.Type
+	if newM.MType == "counter" {
+		newM.Delta = m.Change.IntValue()
+	} else if newM.MType == "gauge" {
+		newM.Value = m.Change.FloatValue()
+	}
+
+	if m.Key != nil && *m.Key != "" {
+		newM.CalcHash(*m.Key)
+	}
+
+	return json.Marshal(newM)
+}
+
+func (m *PSMetric) Update(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	m.prevVal = m.currVal
+	if strings.Contains(m.Name, "CPUutilization") {
+		j, _ := strconv.Atoi(m.Name[len(m.Name)-1:])
+		c, _ := cpu.Times(true)
+
+		m.currVal.float = c[j].Total()
+	} else {
+		m.MetricByName()
+
+	}
+	m.Change = m.currVal.diff(&m.prevVal)
+}
+
+func (m *PSMetric) MetricByName() {
+	v, _ := mem.VirtualMemory()
+
+	if m.Name == "TotalMemory" {
+		m.currVal.integer = int(v.Total)
+	} else if m.Name == "FreeMemory" {
+		m.currVal.integer = int(v.Free)
+	}
+}
+
+func psMetricCPU(metricList *[]*PSMetric, k *string) {
+	c, _ := cpu.Times(true)
+	for i, usage := range c {
+		m := PSMetric{Name: fmt.Sprintf("CPUutilization%d", i), Type: "gauge", Key: k}
+		m.initWithVal(usage.Total())
+		*metricList = append(*metricList, &m)
+	}
 }

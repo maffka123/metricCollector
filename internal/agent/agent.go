@@ -52,17 +52,25 @@ func InitPSMetrics(ctx context.Context, cfg config.Config, client *http.Client, 
 }
 
 //updateMetrics updates metrics from the list
-func UpdateMetrics(ctx context.Context, cfg config.Config, t <-chan time.Time, metricList []collector.MetricInterface, logger *zap.Logger) {
+func UpdateMetrics(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-chan time.Time, metricList []collector.MetricInterface, logger *zap.Logger) {
+
+	// update metrics in parallel
 	var wg sync.WaitGroup
 	for {
 		select {
 		case <-t:
+			// do not let sending metrics if they are now being updated
+			cond.Lock()
 			logger.Info("Updating all metrics")
 			for _, value := range metricList {
 				wg.Add(1)
 				go value.Update(&wg)
 			}
 			wg.Wait()
+			for _, value := range metricList {
+				value.Print()
+			}
+			cond.Unlock()
 
 		case <-ctx.Done():
 			logger.Info("context canceled")
@@ -110,17 +118,21 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 }
 
 // sendAllData iterates over metrics list and sent them to the server
-func SendAllData(ctx context.Context, cfg config.Config, t <-chan time.Time, client *http.Client, metricList []collector.MetricInterface, er chan error, logger *zap.Logger) {
+func SendAllData(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-chan time.Time, client *http.Client, metricList []collector.MetricInterface, er chan error, logger *zap.Logger) {
 
+	// loop for allowing context cancel
 	for {
 
 		select {
 		case <-t:
+			// do not allow metrics to be updated while they are being sent
+			cond.Lock()
 			fmt.Println("Sending all metrics")
 			err := simpleBackoff(ctx, sendJSONData, cfg, client, metricList, logger)
 			if err != nil {
 				er <- err
 			}
+			cond.Unlock()
 		case <-ctx.Done():
 			fmt.Println("context canceled")
 		}
@@ -148,6 +160,7 @@ backoff:
 	return err
 }
 
+// FanIn collects data from channels and appends is togeather
 func FanIn(outChan chan models.MetricList, inputChs ...chan models.MetricList) {
 	var chInterm models.MetricList
 	ch := models.MetricList{}

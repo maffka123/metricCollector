@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -69,8 +70,10 @@ metricList:
 
 	//start both tasks
 	var er chan error
-	go agent.UpdateMetrics(ctx, cfg, pollTicker.C, m.MetricList, logger)
-	go agent.SendAllData(ctx, cfg, reportTicker.C, client, m.MetricList, er, logger)
+	var cond sync.Mutex
+
+	go agent.UpdateMetrics(ctx, cfg, &cond, pollTicker.C, m.MetricList, logger)
+	go agent.SendAllData(ctx, cfg, &cond, reportTicker.C, client, m.MetricList, er, logger)
 	logger.Info("Agent started")
 
 	//if signal to qiut or error from other functions received, cancel ctx

@@ -84,6 +84,7 @@ func (m *Metric) init() {
 	m.MetricByName()
 }
 
+// MetricByName updates curr value of the metric using its name in memStats
 func (m *Metric) MetricByName() {
 	r := reflect.ValueOf(m.memStats)
 	f := reflect.Indirect(r).FieldByName(m.Name)
@@ -98,6 +99,7 @@ func (m *Metric) MetricByName() {
 //Print is more for debugging, print what is inside metric
 func (m *Metric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
 
+// Update updates current value of the metric
 func (m *Metric) Update(wg *sync.WaitGroup) {
 	defer wg.Done()
 	m.memStats = &runtime.MemStats{}
@@ -114,6 +116,7 @@ func (m *Metric) Update(wg *sync.WaitGroup) {
 	m.Change = m.currVal.diff(&m.prevVal)
 }
 
+// MarshalJSON marshalls metrics to json
 func (m *Metric) MarshalJSON() ([]byte, error) {
 	newM := models.Metrics{}
 	newM.ID = m.Name
@@ -131,6 +134,7 @@ func (m *Metric) MarshalJSON() ([]byte, error) {
 	return json.Marshal(newM)
 }
 
+// GetAllPSUtilMetrics collects all psutil metrics at the start
 func GetAllPSUtilMetrics(k *string) []*PSMetric {
 	metricList := []*PSMetric{}
 	for _, value := range psutilMetricNameList {
@@ -152,6 +156,7 @@ func (m *PSMetric) init() {
 	m.MetricByName()
 }
 
+// initWithVal initializes starting value of the metric using passed in value
 func (m *PSMetric) initWithVal(val any) {
 	m.currVal.newNumber()
 	m.prevVal.newNumber()
@@ -167,6 +172,7 @@ func (m *PSMetric) initWithVal(val any) {
 //Print is more for debugging, print what is inside metric
 func (m *PSMetric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
 
+// MarshalJSON converts metrics to json
 func (m *PSMetric) MarshalJSON() ([]byte, error) {
 	newM := models.Metrics{}
 	newM.ID = m.Name
@@ -184,6 +190,7 @@ func (m *PSMetric) MarshalJSON() ([]byte, error) {
 	return json.Marshal(newM)
 }
 
+// Update updates metrics values
 func (m *PSMetric) Update(wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -200,6 +207,7 @@ func (m *PSMetric) Update(wg *sync.WaitGroup) {
 	m.Change = m.currVal.diff(&m.prevVal)
 }
 
+// MetricByName finds metrics in psutil using their name
 func (m *PSMetric) MetricByName() {
 	v, _ := mem.VirtualMemory()
 
@@ -210,6 +218,7 @@ func (m *PSMetric) MetricByName() {
 	}
 }
 
+// psMetricCPU collects cpu metrics for initialization of the metrics
 func psMetricCPU(metricList *[]*PSMetric, k *string) {
 	c, _ := cpu.Times(true)
 	for i, usage := range c {

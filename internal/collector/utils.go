@@ -1,9 +1,6 @@
 package collector
 
-import (
-	"reflect"
-	"runtime"
-)
+import ()
 
 type any interface{}
 
@@ -54,17 +51,6 @@ func (n *number) diff(m *number) number {
 		return number{float: n.float - m.float, integer: 0}
 	} else {
 		return number{integer: 0, float: 0}
-	}
-}
-
-func runtimeMetricByName(m *Metric, memStats *runtime.MemStats) {
-	r := reflect.ValueOf(memStats)
-	f := reflect.Indirect(r).FieldByName(m.Name)
-
-	if f.Kind() == reflect.Float64 {
-		m.currVal.float = f.Float()
-	} else if f.Kind() == reflect.Uint64 {
-		m.currVal.integer = int(f.Uint())
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -44,13 +45,16 @@ func run() error {
 
 	//starting list of metrices, with ability to cancel it
 	var m models.MetricList
-	ch := make(chan models.MetricList, 1)
-	go agent.InitMetrics(ctx, cfg, client, ch, logger)
+	ch := []chan models.MetricList{make(chan models.MetricList, 1), make(chan models.MetricList, 1)}
+	outCh := make(chan models.MetricList, 1)
+	go agent.InitMetrics(ctx, cfg, client, ch[0], logger)
+	go agent.InitPSMetrics(ctx, cfg, client, ch[1], logger)
+	go agent.FanIn(outCh, ch...)
 
 metricList:
 	for {
 		select {
-		case m = <-ch:
+		case m = <-outCh:
 			if m.Err != nil {
 				return m.Err
 			}
@@ -66,8 +70,10 @@ metricList:
 
 	//start both tasks
 	var er chan error
-	go agent.UpdateMetrics(ctx, pollTicker.C, m.MetricList, logger)
-	go agent.SendAllData(ctx, cfg, reportTicker.C, client, m.MetricList, er, logger)
+	var cond sync.Mutex
+
+	go agent.UpdateMetrics(ctx, cfg, &cond, pollTicker.C, m.MetricList, logger)
+	go agent.SendAllData(ctx, cfg, &cond, reportTicker.C, client, m.MetricList, er, logger)
 	logger.Info("Agent started")
 
 	//if signal to qiut or error from other functions received, cancel ctx

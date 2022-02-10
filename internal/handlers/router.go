@@ -14,6 +14,7 @@ func MetricRouter(db storage.Repositories, key *string, logger *zap.Logger) (chi
 	dbUpdated := make(chan time.Time)
 
 	r := chi.NewRouter()
+	mh := NewMetricHandler(db, logger)
 
 	// зададим встроенные middleware, чтобы улучшить стабильность приложения
 	r.Use(middleware.RequestID)
@@ -22,23 +23,23 @@ func MetricRouter(db storage.Repositories, key *string, logger *zap.Logger) (chi
 	r.Use(middleware.Recoverer)
 
 	r.Route("/update/", func(r chi.Router) {
-		r.Post("/gauge/*", Conveyor(PostHandlerGouge(db, dbUpdated, logger), checkForPost, checkForLength, unpackGZIP))
-		r.Post("/counter/*", Conveyor(PostHandlerCounter(db, dbUpdated, logger), checkForPost, checkForLength, unpackGZIP))
+		r.Post("/gauge/*", Conveyor(mh.PostHandlerGouge(dbUpdated), checkForPost, checkForLength, unpackGZIP))
+		r.Post("/counter/*", Conveyor(mh.PostHandlerCounter(dbUpdated), checkForPost, checkForLength, unpackGZIP))
 		r.Post("/*", func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "501 - Metric type unknown!", http.StatusNotImplemented)
 		})
-		r.Post("/", Conveyor(PostHandlerUpdate(db, dbUpdated, key, logger), checkForJSON, checkForPost, unpackGZIP))
+		r.Post("/", Conveyor(mh.PostHandlerUpdate(dbUpdated, key), checkForJSON, checkForPost, unpackGZIP))
 
 	})
 
 	r.Route("/value/", func(r chi.Router) {
-		r.Get("/{type}/{name}", GetHandlerValue(db))
-		r.Post("/", Conveyor(PostHandlerReturn(db, key, logger), checkForJSON, checkForPost, packGZIP, unpackGZIP))
+		r.Get("/{type}/{name}", mh.GetHandlerValue())
+		r.Post("/", Conveyor(mh.PostHandlerReturn(key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
 	})
 
-	r.Get("/ping", GetHandlerPing(db))
-	r.Post("/updates/", Conveyor(PostHandlerUpdates(db, dbUpdated, key, logger), checkForJSON, checkForPost, unpackGZIP))
-	r.Get("/", Conveyor(GetAllNames(db), packGZIP))
+	r.Get("/ping", mh.GetHandlerPing())
+	r.Post("/updates/", Conveyor(mh.PostHandlerUpdates(dbUpdated, key), checkForJSON, checkForPost, unpackGZIP))
+	r.Get("/", Conveyor(mh.GetAllNames(), packGZIP))
 
 	return r, dbUpdated
 }

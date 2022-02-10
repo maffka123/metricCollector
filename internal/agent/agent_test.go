@@ -36,10 +36,10 @@ func Test_simpleBackoff(t *testing.T) {
 	ctx := context.Background()
 
 	m := []*collector.Metric{{Name: "PollCount", Type: "counter"}}
-	fErr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric, logger *zap.Logger) error {
+	fErr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []collector.MetricInterface, logger *zap.Logger) error {
 		return errors.New("some error")
 	})
-	fNoerr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []*collector.Metric, logger *zap.Logger) error {
+	fNoerr := sendDataFunc(func(ctx context.Context, cfg config.Config, c *http.Client, m []collector.MetricInterface, logger *zap.Logger) error {
 		select {
 		case <-timer.C:
 			return nil
@@ -61,8 +61,12 @@ func Test_simpleBackoff(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			a := make([]collector.MetricInterface, len(m))
+			for i := range m {
+				a[i] = m[i]
+			}
 			timer.Reset(delay)
-			err := simpleBackoff(ctx, tt.args.f, cfg, client, m, logger)
+			err := simpleBackoff(ctx, tt.args.f, cfg, client, a, logger)
 			assert.Equal(t, tt.wantErr, err)
 
 		})
@@ -89,7 +93,11 @@ func Test_sendData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := sendJSONData(ctx, cfg, client, tt.args.m, logger)
+			m := make([]collector.MetricInterface, len(tt.args.m))
+			for i := range tt.args.m {
+				m[i] = tt.args.m[i]
+			}
+			err := sendJSONData(ctx, cfg, client, m, logger)
 			assert.Error(t, err)
 		})
 	}

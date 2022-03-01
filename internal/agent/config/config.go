@@ -14,6 +14,7 @@ type Config struct {
 	Delay          time.Duration `env:"BACKOFF_DELAY"`
 	Key            string        `env:"KEY"`
 	Debug          bool          `env:"METRIC_SERVER_DEBUG"`
+	Profile        bool          `env:"METRIC_SERVER_PROFILE"`
 }
 
 func InitConfig() (Config, error) {
@@ -25,7 +26,8 @@ func InitConfig() (Config, error) {
 	flag.IntVar(&cfg.Retries, "n", 3, "how many times should try to send metrics in case of error")
 	flag.DurationVar(&cfg.Delay, "t", 10*time.Second, "delay in case of error and retry")
 	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
-	flag.BoolVar(&cfg.Debug, "debug", true, "key for hash function")
+	flag.BoolVar(&cfg.Debug, "debug", true, "if debugging is needed")
+	flag.BoolVar(&cfg.Profile, "profile", true, "if profiling is needed")
 
 	flag.Parse()
 	err := internal.GetConfig(&cfg)

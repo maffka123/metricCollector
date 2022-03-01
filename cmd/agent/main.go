@@ -22,12 +22,18 @@ func main() {
 }
 
 func run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// for sending metrics to the server
 
 	cfg, err := config.InitConfig()
 
 	if err != nil {
 		return err
+	}
+
+	if cfg.Profile {
+		go agent.StartProfiling(ctx, "base.profile", "mem")
 	}
 
 	logger := globalConf.InitLogger(cfg.Debug)
@@ -38,8 +44,7 @@ func run() error {
 	client := &http.Client{}
 
 	// To be able to cancel tasks, make ctx and signal handler
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 

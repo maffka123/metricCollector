@@ -10,9 +10,14 @@ import (
 	"github.com/maffka123/metricCollector/internal/agent/models"
 	"github.com/maffka123/metricCollector/internal/collector"
 	"go.uber.org/zap"
+	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	"os"
+	"runtime"
+	"runtime/pprof"
 )
 
 type sendDataFunc func(context.Context, config.Config, *http.Client, []collector.MetricInterface, *zap.Logger) error
@@ -174,4 +179,31 @@ func FanIn(outChan chan models.MetricList, inputChs ...chan models.MetricList) {
 		}
 	}
 	outChan <- ch
+}
+
+func StartProfiling(ctx context.Context, file string, what string) {
+	f, err := os.Create("/Users/maria/Desktop/go_intro/metricCollector/profiles/" + file)
+	if err != nil {
+		log.Fatal(fmt.Errorf("could not open file for profile: %v", err))
+	}
+	defer f.Close()
+
+	switch {
+	case what == "mem":
+		fmt.Println("collecting memory")
+		runtime.GC() // получаем статистику по использованию памяти
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal(fmt.Errorf("could not write heap: %v", err))
+		}
+
+	case what == "cpu":
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal(fmt.Errorf("could not write cpu: %v", err))
+		}
+		defer pprof.StopCPUProfile()
+	default:
+		log.Fatal(fmt.Errorf("could not write heap: %v", what))
+
+	}
+	<-ctx.Done()
 }

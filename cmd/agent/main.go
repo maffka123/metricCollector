@@ -1,5 +1,4 @@
 // This is an agent, which is collecting system data.
-
 package main
 
 import (

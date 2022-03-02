@@ -23,7 +23,7 @@ type Config struct {
 func InitConfig() Config {
 	var cfg Config
 
-	flag.StringVar(&cfg.Endpoint, "a", "localhost:8086", "server address as host:port")
+	flag.StringVar(&cfg.Endpoint, "a", "localhost:8080", "server address as host:port")
 	flag.BoolVar(&cfg.Restore, "r", true, "if to restore db from a dump")
 	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "how often to dump db into the file")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "name and location of the file path/to/file.json")

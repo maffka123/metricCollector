@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 func Example() {
+	os.Setenv("ADDRESS", "localhost:8086")
 	go main()
 
 	client := &http.Client{}

@@ -181,7 +181,7 @@ func FanIn(outChan chan models.MetricList, inputChs ...chan models.MetricList) {
 	outChan <- ch
 }
 
-func StartProfiling(ctx context.Context, file string, what string) {
+func StartProfiling(ctx chan int, file string, what string) {
 	f, err := os.Create("/Users/maria/Desktop/go_intro/metricCollector/profiles/" + file)
 	if err != nil {
 		log.Fatal(fmt.Errorf("could not open file for profile: %v", err))
@@ -190,20 +190,24 @@ func StartProfiling(ctx context.Context, file string, what string) {
 
 	switch {
 	case what == "mem":
+		<-ctx
 		fmt.Println("collecting memory")
-		runtime.GC() // получаем статистику по использованию памяти
+		runtime.GC()
 		if err := pprof.WriteHeapProfile(f); err != nil {
 			log.Fatal(fmt.Errorf("could not write heap: %v", err))
 		}
+		fmt.Println("collecting memory done")
+		ctx <- 1
 
 	case what == "cpu":
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatal(fmt.Errorf("could not write cpu: %v", err))
 		}
 		defer pprof.StopCPUProfile()
+		<-ctx
 	default:
 		log.Fatal(fmt.Errorf("could not write heap: %v", what))
 
 	}
-	<-ctx.Done()
+	fmt.Println("collecting memory really done")
 }

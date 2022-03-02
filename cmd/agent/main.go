@@ -32,8 +32,11 @@ func run() error {
 		return err
 	}
 
+	do := make(chan int)
 	if cfg.Profile {
-		go agent.StartProfiling(ctx, "base.profile", "mem")
+		go agent.StartProfiling(do, "result2.pprof", "mem")
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
 	}
 
 	logger := globalConf.InitLogger(cfg.Debug)
@@ -85,10 +88,20 @@ metricList:
 	for {
 		select {
 		case <-quit:
+			logger.Info("Finishing")
+			do <- 1
+			<-do
 			return nil
 		case err = <-er:
 			return err
+		case <-ctx.Done():
+			logger.Info("Finishing")
+			do <- 1
+			<-do
+			return nil
+
 		}
+
 	}
 
 }

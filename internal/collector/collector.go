@@ -23,13 +23,12 @@ var runtimeMetricNameList = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUF
 var psutilMetricNameList = [...]string{"TotalMemory", "FreeMemory"}
 
 type Metric struct {
-	Name     string
-	prevVal  number
-	currVal  number
-	Change   number
-	Type     string
-	Key      *string
-	memStats *runtime.MemStats
+	Name    string
+	prevVal number
+	currVal number
+	Change  number
+	Type    string
+	Key     *string
 }
 
 type PSMetric struct {
@@ -53,11 +52,10 @@ GetAllMetrics prepares and intialize all metrics that are collected in this serv
 see example here: https://github.com/tevjef/go-runtime-metrics/blob/master/collector/collector.go
 */
 func GetAllMetrics(k *string) []*Metric {
-	memStats := startStats()
 	metricList := []*Metric{}
 	for _, value := range runtimeMetricNameList {
 
-		m := Metric{Name: value, Type: "gauge", Key: k, memStats: memStats}
+		m := Metric{Name: value, Type: "gauge", Key: k}
 		m.init()
 		metricList = append(metricList, &m)
 	}
@@ -86,7 +84,7 @@ func (m *Metric) init() {
 
 // MetricByName updates curr value of the metric using its name in memStats
 func (m *Metric) MetricByName() {
-	r := reflect.ValueOf(m.memStats)
+	r := reflect.ValueOf(startStats())
 	f := reflect.Indirect(r).FieldByName(m.Name)
 
 	if f.Kind() == reflect.Float64 {
@@ -102,8 +100,8 @@ func (m *Metric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
 // Update updates current value of the metric
 func (m *Metric) Update(wg *sync.WaitGroup) {
 	defer wg.Done()
-	m.memStats = &runtime.MemStats{}
-	runtime.ReadMemStats(m.memStats)
+	memStats := &runtime.MemStats{}
+	runtime.ReadMemStats(memStats)
 	m.prevVal = m.currVal
 	if m.Name == "PollCount" {
 		m.currVal.integer += 1

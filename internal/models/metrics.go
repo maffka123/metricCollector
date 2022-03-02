@@ -1,3 +1,4 @@
+// models packaje to hold common models for both services.
 package models
 
 import (
@@ -8,6 +9,7 @@ import (
 	"fmt"
 )
 
+// Metrics type defines metric that is exchanged between agent and server.
 type Metrics struct {
 	ID    string   `json:"id"`              // metrics name
 	MType string   `json:"type"`            // metrics type: can be counter or gauge
@@ -16,10 +18,12 @@ type Metrics struct {
 	Hash  string   `json:"hash,omitempty"`  // hash-value
 }
 
+// CalcHash calculates hash from key.
 func (m *Metrics) CalcHash(key string) {
 	m.Hash = m.newHash(key)
 }
 
+// CompareHash compares to hashes.
 func (m *Metrics) CompareHash(key string) error {
 	hash := m.newHash(key)
 	if hash != m.Hash {
@@ -29,12 +33,14 @@ func (m *Metrics) CompareHash(key string) error {
 	return nil
 }
 
+// hash generates a hash
 func hash(s string, key string) []byte {
 	h := hmac.New(sha256.New, []byte(key))
 	h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
+// newHash generates new hash for a this metric
 func (m *Metrics) newHash(key string) string {
 	var h string
 	if m.MType == "counter" {

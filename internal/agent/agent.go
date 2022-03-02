@@ -1,3 +1,5 @@
+// agent implemets util methods spezific for agent.
+
 package agent
 
 import (
@@ -21,11 +23,11 @@ import (
 	"github.com/maffka123/metricCollector/internal/collector"
 )
 
+// sendDataFunc defines a function for sending data over http, it is neede for backoff.
 type sendDataFunc func(context.Context, config.Config, *http.Client, []collector.MetricInterface, *zap.Logger) error
 
-//initMetrics initializes list with all metrics of interest, send first values to the server
+//initMetrics initializes list with all metrics of interest, send first values to the server.
 func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch chan models.MetricList, logger *zap.Logger) {
-	//ctx, cancel := context.WithCancel(ctx)
 	metricList := collector.GetAllMetrics(&cfg.Key)
 	m := make([]collector.MetricInterface, len(metricList))
 	for i := range metricList {
@@ -40,8 +42,8 @@ func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch
 	ch <- a
 }
 
+// InitPSMetrics initializes psutil metrics.
 func InitPSMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch chan models.MetricList, logger *zap.Logger) {
-	//ctx, cancel := context.WithCancel(ctx)
 
 	metricList := collector.GetAllPSUtilMetrics(&cfg.Key)
 	m := make([]collector.MetricInterface, len(metricList))
@@ -57,7 +59,7 @@ func InitPSMetrics(ctx context.Context, cfg config.Config, client *http.Client, 
 	ch <- a
 }
 
-//updateMetrics updates metrics from the list
+//updateMetrics updates metrics from the list.
 func UpdateMetrics(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-chan time.Time, metricList []collector.MetricInterface, logger *zap.Logger) {
 
 	// update metrics in parallel
@@ -123,7 +125,7 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 	return nil
 }
 
-// sendAllData iterates over metrics list and sent them to the server
+// sendAllData iterates over metrics list and sent them to the server.
 func SendAllData(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-chan time.Time, client *http.Client, metricList []collector.MetricInterface, er chan error, logger *zap.Logger) {
 
 	// loop for allowing context cancel
@@ -145,7 +147,7 @@ func SendAllData(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-c
 	}
 }
 
-// simpleBackoff repeats call to a function in case of an error
+// simpleBackoff repeats call to a function in case of an error.
 func simpleBackoff(ctx context.Context, f sendDataFunc, cfg config.Config, c *http.Client, m []collector.MetricInterface, logger *zap.Logger) error {
 	var err error
 backoff:
@@ -166,7 +168,7 @@ backoff:
 	return err
 }
 
-// FanIn collects data from channels and appends is togeather
+// FanIn collects data from channels and appends is togeather.
 func FanIn(outChan chan models.MetricList, inputChs ...chan models.MetricList) {
 	var chInterm models.MetricList
 	ch := models.MetricList{}
@@ -182,6 +184,7 @@ func FanIn(outChan chan models.MetricList, inputChs ...chan models.MetricList) {
 	outChan <- ch
 }
 
+// StartProfiling implements profiling of memory or cpu usage.
 func StartProfiling(ctx chan int, file string, what string) {
 	f, err := os.Create("/Users/maria/Desktop/go_intro/metricCollector/profiles/" + file)
 	if err != nil {

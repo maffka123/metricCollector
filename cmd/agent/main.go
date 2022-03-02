@@ -1,3 +1,5 @@
+// This is an agent, which is collecting system data.
+
 package main
 
 import (
@@ -16,12 +18,20 @@ import (
 	globalConf "github.com/maffka123/metricCollector/internal/config"
 )
 
+// I was told one should do it like that to be abe to test.
 func main() {
 	if err := run(); err != nil {
 		panic(errors.Unwrap(err))
 	}
 }
 
+// run implemets the wrole run logic of an agent.
+// Shortly:
+// - initialize config
+// - strt profiling if needed
+// - initialize logger
+// - initialize metrics first values
+// - start 2 goroutines for periodicar metric update and send them to the server
 func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -86,23 +96,22 @@ metricList:
 	logger.Info("Agent started")
 
 	//if signal to qiut or error from other functions received, cancel ctx
+catchQuitORerror:
 	for {
 		select {
 		case <-quit:
-			logger.Info("Finishing")
-			do <- 1
-			<-do
-			return nil
+			break catchQuitORerror
 		case err = <-er:
 			return err
 		case <-ctx.Done():
-			logger.Info("Finishing")
-			do <- 1
-			<-do
-			return nil
-
+			break catchQuitORerror
 		}
-
 	}
 
+	logger.Info("Finishing")
+	if cfg.Profile {
+		do <- 1
+		<-do
+	}
+	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/maffka123/metricCollector/internal/server/config"
 )
 
+// InMemoryDB type for holding all parameters of in-memory storage.
 type InMemoryDB struct {
 	Gouge         map[string]float64 `json:"gauge"`
 	Counter       map[string]int64   `json:"counter"`
@@ -20,6 +21,7 @@ type InMemoryDB struct {
 	log           *zap.Logger        `json:"-"`
 }
 
+// Connect initilizes in-memory storage.
 func Connect(cfg *config.Config, logger *zap.Logger) *InMemoryDB {
 	db := InMemoryDB{
 		Gouge:         map[string]float64{},
@@ -40,14 +42,17 @@ func Connect(cfg *config.Config, logger *zap.Logger) *InMemoryDB {
 	return &db
 }
 
+// InsertGouge appends/updates gouge in metrics map.
 func (db *InMemoryDB) InsertGouge(name string, val float64) {
 	db.Gouge[name] = val
 }
 
+// InsertCounter appends/updates counter in metrics mao.
 func (db *InMemoryDB) InsertCounter(name string, val int64) {
 	db.Counter[name] += val
 }
 
+// NameInGouge checks if given gouge already exists in the map.
 func (db *InMemoryDB) NameInGouge(s string) bool {
 	if _, ok := db.Gouge[s]; ok {
 		return true
@@ -55,6 +60,7 @@ func (db *InMemoryDB) NameInGouge(s string) bool {
 	return false
 }
 
+// NameInCounter checks if given counter already exists in the map.
 func (db *InMemoryDB) NameInCounter(s string) bool {
 	if _, ok := db.Counter[s]; ok {
 		return true
@@ -62,14 +68,17 @@ func (db *InMemoryDB) NameInCounter(s string) bool {
 	return false
 }
 
+// ValueFromCounter gets counter by its name.
 func (db *InMemoryDB) ValueFromCounter(s string) int64 {
 	return db.Counter[s]
 }
 
+// ValueFromGouge gets gouge by its name.
 func (db *InMemoryDB) ValueFromGouge(s string) float64 {
 	return db.Gouge[s]
 }
 
+// SelectAll select all available metrics.
 func (db *InMemoryDB) SelectAll() ([]string, []string) {
 	var listCounter []string
 	var listGouge []string
@@ -85,6 +94,7 @@ func (db *InMemoryDB) SelectAll() ([]string, []string) {
 	return listCounter, listGouge
 }
 
+// DumpDB stores metrics in a file as json.
 func (db *InMemoryDB) DumpDB() error {
 	p, err := NewProducer(db.StoreFile)
 
@@ -97,6 +107,7 @@ func (db *InMemoryDB) DumpDB() error {
 	return p.encoder.Encode(&db)
 }
 
+// RestoreDB reads metrics from json file.
 func (db *InMemoryDB) RestoreDB() error {
 	c, err := NewConsumer(db.StoreFile)
 
@@ -113,12 +124,13 @@ func (db *InMemoryDB) RestoreDB() error {
 	return nil
 }
 
-var zeroDB = &InMemoryDB{}
-
+// CloseConnection empties metrics map.
 func (db *InMemoryDB) CloseConnection() {
+	var zeroDB = &InMemoryDB{}
 	*db = *zeroDB
 }
 
+// BatchInsert insert several metrics at one time into map.
 func (db *InMemoryDB) BatchInsert(ms []models.Metrics) {
 	for _, m := range ms {
 		if m.MType == "counter" {

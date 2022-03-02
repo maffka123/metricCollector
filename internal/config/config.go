@@ -1,3 +1,4 @@
+// config package usefull for both serivces here. It allows initialize configs in the same way for both.
 package config
 
 import (
@@ -7,8 +8,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// confObj intarface that allows to use any  config struct
 type confObj interface{}
 
+// GetConfig parses config options from environment
 func GetConfig(c confObj) error {
 	err := env.Parse(c)
 	if err != nil {
@@ -17,6 +20,7 @@ func GetConfig(c confObj) error {
 	return nil
 }
 
+// InitLogger initilizes and configures zap logger
 func InitLogger(debug bool) *zap.Logger {
 	zapConfig := zap.NewProductionConfig()
 	zapConfig.EncoderConfig.LevelKey = "severity"

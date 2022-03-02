@@ -1,9 +1,11 @@
+// storage holds all what is connected to data storage.
 package storage
 
 import (
 	"github.com/maffka123/metricCollector/internal/models"
 )
 
+// Repositories interface to allow using different databases.
 type Repositories interface {
 	InsertGouge(name string, val float64)
 	InsertCounter(name string, val int64)

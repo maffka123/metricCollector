@@ -1,3 +1,4 @@
+// server to collect metrics coming to its endpoints.
 package main
 
 import (
@@ -18,6 +19,15 @@ import (
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
+// main implements all server logic.
+// Shortly:
+// - initialize config
+// - initialize logger
+// - initilize DB (can be in-memory of postgres)
+// - initilize router
+// - start goroutine to catch quit signal
+// - start goroutine to make periodical db dumps
+// - start serving
 func main() {
 	cfg := config.InitConfig()
 	logger := globalConf.InitLogger(cfg.Debug)

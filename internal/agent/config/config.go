@@ -7,6 +7,7 @@ import (
 	internal "github.com/maffka123/metricCollector/internal/config"
 )
 
+// Config is a majoj config structure.
 type Config struct {
 	Endpoint       string        `env:"ADDRESS"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
@@ -18,6 +19,7 @@ type Config struct {
 	Profile        bool          `env:"METRIC_SERVER_PROFILE"`
 }
 
+// InitConfig initilizes config so that it first checks flags and the env variables.
 func InitConfig() (Config, error) {
 	var cfg Config
 
@@ -28,7 +30,7 @@ func InitConfig() (Config, error) {
 	flag.DurationVar(&cfg.Delay, "t", 10*time.Second, "delay in case of error and retry")
 	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
 	flag.BoolVar(&cfg.Debug, "debug", true, "if debugging is needed")
-	flag.BoolVar(&cfg.Profile, "profile", true, "if profiling is needed")
+	flag.BoolVar(&cfg.Profile, "profile", false, "if profiling is needed")
 
 	flag.Parse()
 	err := internal.GetConfig(&cfg)

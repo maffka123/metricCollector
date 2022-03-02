@@ -15,6 +15,7 @@ import (
 	"github.com/maffka123/metricCollector/internal/server/config"
 )
 
+// PGinterface interface for the pg connector. Is needed to be able to use test library in unit-tests.
 type PGinterface interface {
 	Begin(context.Context) (pgx.Tx, error)
 	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
@@ -23,6 +24,7 @@ type PGinterface interface {
 	Close()
 }
 
+// PGDB type defined pd database.
 type PGDB struct {
 	StoreInterval time.Duration `json:"-"`
 	StoreFile     string        `json:"-"`
@@ -32,6 +34,8 @@ type PGDB struct {
 	log           *zap.Logger   `json:"-"`
 }
 
+// ConnectPG initilizes pg database and also establishes a connection to it.
+// It also runs sql to create tables if the do not exist.
 func ConnectPG(ctx context.Context, cfg *config.Config, logger *zap.Logger) *PGDB {
 	db := PGDB{
 		StoreInterval: cfg.StoreInterval,
@@ -63,14 +67,17 @@ func ConnectPG(ctx context.Context, cfg *config.Config, logger *zap.Logger) *PGD
 	return &db
 }
 
+// RestoreDB restors database from dump.
 func (db *PGDB) RestoreDB() error {
 	return errors.New("not implemented")
 }
 
+// DumpDB dumps db into file
 func (db *PGDB) DumpDB() error {
 	return errors.New("not implemented")
 }
 
+// SelectAll allows to selec all metrics from database.
 func (db *PGDB) SelectAll() ([]string, []string) {
 	var listCounter []string
 	var listGouge []string
@@ -115,6 +122,7 @@ func (db *PGDB) SelectAll() ([]string, []string) {
 	return listCounter, listGouge
 }
 
+// InsertGouge append or merge gouge.
 func (db *PGDB) InsertGouge(name string, val float64) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -127,6 +135,7 @@ func (db *PGDB) InsertGouge(name string, val float64) {
 	}
 }
 
+// InsertCounter append or merge counter.
 func (db *PGDB) InsertCounter(name string, val int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -139,6 +148,7 @@ func (db *PGDB) InsertCounter(name string, val int64) {
 	}
 }
 
+// NameInGouge checks if gouge with the given name already exists in db.
 func (db *PGDB) NameInGouge(s string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -148,6 +158,7 @@ func (db *PGDB) NameInGouge(s string) bool {
 	return err == nil
 }
 
+// NameInCounter checks if counter with the given name already exists in db.
 func (db *PGDB) NameInCounter(s string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -157,6 +168,7 @@ func (db *PGDB) NameInCounter(s string) bool {
 	return err == nil
 }
 
+// ValueFromCounter selects value from counter.
 func (db *PGDB) ValueFromCounter(s string) int64 {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -170,6 +182,7 @@ func (db *PGDB) ValueFromCounter(s string) int64 {
 	return val
 }
 
+// ValueFromGouge select value from gouge.
 func (db *PGDB) ValueFromGouge(s string) float64 {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -183,10 +196,12 @@ func (db *PGDB) ValueFromGouge(s string) float64 {
 	return val
 }
 
+// CloseConnection closes connection to db.
 func (db *PGDB) CloseConnection() {
 	db.Conn.Close()
 }
 
+// BatchInsert allow insert/append multiple values within one transaction.
 func (db *PGDB) BatchInsert(m []models.Metrics) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

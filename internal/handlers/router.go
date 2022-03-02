@@ -1,3 +1,4 @@
+// handlers package collects routing methods for the API as well as handlers for all endpoints.
 package handlers
 
 import (
@@ -11,13 +12,14 @@ import (
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
+// MetricRouter routes the API.
 func MetricRouter(db storage.Repositories, key *string, logger *zap.Logger) (chi.Router, chan time.Time) {
 	dbUpdated := make(chan time.Time)
 
 	r := chi.NewRouter()
 	mh := NewMetricHandler(db, logger)
 
-	// зададим встроенные middleware, чтобы улучшить стабильность приложения
+	// use inbuild middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)

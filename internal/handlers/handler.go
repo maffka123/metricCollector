@@ -19,31 +19,24 @@ import (
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
+// MetricHandler struct to avoid repeating parsing of db and logger in every function.
 type MetricHandler struct {
 	db     storage.Repositories
 	logger *zap.Logger
 }
 
-type MetricHandlerInterface interface {
-	PostHandlerGouge(dbUpdated chan time.Time) func(w http.ResponseWriter, r *http.Request)
-	PostHandlerCounter(dbUpdated chan time.Time) func(w http.ResponseWriter, r *http.Request)
-	GetHandlerValue() func(w http.ResponseWriter, r *http.Request)
-	GetAllNames() func(w http.ResponseWriter, r *http.Request)
-	PostHandlerUpdate(dbUpdated chan time.Time, key *string) func(w http.ResponseWriter, r *http.Request)
-	GetHandlerPing(key *string) func(w http.ResponseWriter, r *http.Request)
-	PostHandlerReturn() func(w http.ResponseWriter, r *http.Request)
-	PostHandlerUpdates(dbUpdated chan time.Time, key *string) func(w http.ResponseWriter, r *http.Request)
-}
-
-type metricsList struct {
+// metricsName type for using with html-templates.
+type metricsName struct {
 	NameValue string
 }
 
+// allMetricsList type allow to collects all metrics in one separated by their type.
 type allMetricsList struct {
-	Counter []metricsList
-	Gauge   []metricsList
+	Counter []metricsName
+	Gauge   []metricsName
 }
 
+// NewMetricHandler initializes handler.
 func NewMetricHandler(db storage.Repositories, logger *zap.Logger) MetricHandler {
 	return MetricHandler{
 		db:     db,
@@ -51,7 +44,7 @@ func NewMetricHandler(db storage.Repositories, logger *zap.Logger) MetricHandler
 	}
 }
 
-//PostHandlerGouge processes POST request to add/replace value of a gouge metric
+// PostHandlerGouge processes POST request to add/replace value of a gouge metric.
 func (mh *MetricHandler) PostHandlerGouge(dbUpdated chan time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -72,7 +65,7 @@ func (mh *MetricHandler) PostHandlerGouge(dbUpdated chan time.Time) http.Handler
 	}
 }
 
-//PostHandlerCounter processes POST request to add/replace value of a counter metric
+// PostHandlerCounter processes POST request to add/replace value of a counter metric.
 func (mh *MetricHandler) PostHandlerCounter(dbUpdated chan time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := strings.Split(strings.Trim(r.URL.String(), "/"), "/")
@@ -91,7 +84,7 @@ func (mh *MetricHandler) PostHandlerCounter(dbUpdated chan time.Time) http.Handl
 	}
 }
 
-//GetHandlerValue processes GET request to return value of a specific metric
+// GetHandlerValue processes GET request to return value of a specific metric.
 func (mh *MetricHandler) GetHandlerValue() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := strings.ToLower(chi.URLParam(r, "type"))
@@ -124,26 +117,26 @@ func (mh *MetricHandler) GetHandlerValue() http.HandlerFunc {
 	}
 }
 
-//GetAllNames processes GET request to return all available metrics
+// GetAllNames processes GET request to return all available metrics.
 func (mh *MetricHandler) GetAllNames() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		tmpl := template.Must(template.New("MetricsList").Parse(templates.MetricTemplate))
 		var aml allMetricsList
-		mlc := []metricsList{}
-		mlg := []metricsList{}
+		mlc := []metricsName{}
+		mlg := []metricsName{}
 
 		rw.Header().Set("Content-Type", "text/html")
 		rw.WriteHeader(http.StatusOK)
 		listCounter, listGouge := mh.db.SelectAll()
 
 		for _, v := range listCounter {
-			mlc = append(mlc, metricsList{NameValue: v})
+			mlc = append(mlc, metricsName{NameValue: v})
 
 		}
 
 		for _, v := range listGouge {
-			mlg = append(mlg, metricsList{NameValue: v})
+			mlg = append(mlg, metricsName{NameValue: v})
 
 		}
 
@@ -156,7 +149,7 @@ func (mh *MetricHandler) GetAllNames() http.HandlerFunc {
 	}
 }
 
-// PostHandlerUpdate processes POST request with json data to update particular metric
+// PostHandlerUpdate processes POST request with json data to update particular metric.
 func (mh *MetricHandler) PostHandlerUpdate(dbUpdated chan time.Time, key *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
@@ -189,7 +182,7 @@ func (mh *MetricHandler) PostHandlerUpdate(dbUpdated chan time.Time, key *string
 	}
 }
 
-// PostHandlerReturn processes POST request with json to return particular metric
+// PostHandlerReturn processes POST request with json to return particular metric.
 func (mh *MetricHandler) PostHandlerReturn(key *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
@@ -230,11 +223,11 @@ func (mh *MetricHandler) PostHandlerReturn(key *string) http.HandlerFunc {
 	}
 }
 
-// GetHandlerPing pings postgres db after GET request
+// GetHandlerPing pings postgres db after GET request.
 func (mh *MetricHandler) GetHandlerPing() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		//convert first to PGDB then to pgxpool to be able to use Ping method
+		// convert first to PGDB then to pgxpool to be able to use Ping method
 		conn := mh.db.(*storage.PGDB).Conn.(*pgxpool.Pool)
 
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
@@ -251,7 +244,7 @@ func (mh *MetricHandler) GetHandlerPing() http.HandlerFunc {
 	}
 }
 
-// PostHandlerUpdates updates db in batch after POST request with json data
+// PostHandlerUpdates updates db in batch after POST request with json data.
 func (mh *MetricHandler) PostHandlerUpdates(dbUpdated chan time.Time, key *string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)

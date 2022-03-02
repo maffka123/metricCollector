@@ -1,3 +1,4 @@
+// collector is a packege that collects metrics from runtime and psutil.
 package collector
 
 import (
@@ -16,14 +17,17 @@ import (
 	"github.com/maffka123/metricCollector/internal/models"
 )
 
+// runtimeMetricNameList global var which defines names of collected metrics coming from runtime.
 var runtimeMetricNameList = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction",
 	"GCSys", "HeapAlloc", "HeapIdle", "HeapInuse", "HeapObjects",
 	"HeapReleased", "HeapSys", "LastGC", "Lookups", "MCacheInuse", "MCacheSys",
 	"MSpanInuse", "MSpanSys", "Mallocs", "NextGC", "NumForcedGC", "NumGC",
 	"OtherSys", "PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
 
+// psutilMetricNameList global var which defines names of collected metrics coming from psutil.
 var psutilMetricNameList = [...]string{"TotalMemory", "FreeMemory"}
 
+// Metric type implements metrics that is used overal in agent.
 type Metric struct {
 	Name    string
 	prevVal number
@@ -33,15 +37,10 @@ type Metric struct {
 	Key     *string
 }
 
-type PSMetric struct {
-	Name    string
-	prevVal number
-	currVal number
-	Change  number
-	Type    string
-	Key     *string
-}
+// PSMetric type for psutil metrics with its own methods.
+type PSMetric Metric
 
+// MetricInterface implemets interface for metric type, so psutil and runtime could be used all around in the same way.
 type MetricInterface interface {
 	init()
 	Print()
@@ -49,10 +48,8 @@ type MetricInterface interface {
 	MarshalJSON() ([]byte, error)
 }
 
-/*
-GetAllMetrics prepares and intialize all metrics that are collected in this service.
-see example here: https://github.com/tevjef/go-runtime-metrics/blob/master/collector/collector.go
-*/
+// GetAllMetrics prepares and intialize all metrics that are collected in this service.
+// see example here: https://github.com/tevjef/go-runtime-metrics/blob/master/collector/collector.go
 func GetAllMetrics(k *string) []*Metric {
 	metricList := []*Metric{}
 	for _, value := range runtimeMetricNameList {
@@ -68,14 +65,14 @@ func GetAllMetrics(k *string) []*Metric {
 	return metricList
 }
 
-// startStats prepares reference to runtime MemStats object
+// startStats prepares reference to runtime MemStats object.
 func startStats() *runtime.MemStats {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
 	return memStats
 }
 
-// init initializes starting value of the metric
+// init initializes starting value of the metric.
 func (m *Metric) init() {
 	m.currVal.newNumber()
 	m.prevVal.newNumber()
@@ -84,7 +81,7 @@ func (m *Metric) init() {
 	m.MetricByName()
 }
 
-// MetricByName updates curr value of the metric using its name in memStats
+// MetricByName updates curr value of the metric using its name in memStats.
 func (m *Metric) MetricByName() {
 	r := reflect.ValueOf(startStats())
 	f := reflect.Indirect(r).FieldByName(m.Name)
@@ -96,7 +93,7 @@ func (m *Metric) MetricByName() {
 	}
 }
 
-//Print is more for debugging, print what is inside metric
+//Print is more for debugging, print what is inside metric.
 func (m *Metric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
 
 // Update updates current value of the metric
@@ -116,7 +113,7 @@ func (m *Metric) Update(wg *sync.WaitGroup) {
 	m.Change = m.currVal.diff(&m.prevVal)
 }
 
-// MarshalJSON marshalls metrics to json
+// MarshalJSON marshalls metrics to json.
 func (m *Metric) MarshalJSON() ([]byte, error) {
 	newM := models.Metrics{}
 	newM.ID = m.Name
@@ -134,7 +131,7 @@ func (m *Metric) MarshalJSON() ([]byte, error) {
 	return json.Marshal(newM)
 }
 
-// GetAllPSUtilMetrics collects all psutil metrics at the start
+// GetAllPSUtilMetrics collects all psutil metrics at the start.
 func GetAllPSUtilMetrics(k *string) []*PSMetric {
 	metricList := []*PSMetric{}
 	for _, value := range psutilMetricNameList {
@@ -148,7 +145,7 @@ func GetAllPSUtilMetrics(k *string) []*PSMetric {
 	return metricList
 }
 
-// init initializes starting value of the metric
+// init initializes starting value of the metric.
 func (m *PSMetric) init() {
 	m.currVal.newNumber()
 	m.prevVal.newNumber()
@@ -156,7 +153,7 @@ func (m *PSMetric) init() {
 	m.MetricByName()
 }
 
-// initWithVal initializes starting value of the metric using passed in value
+// initWithVal initializes starting value of the metric using passed in value.
 func (m *PSMetric) initWithVal(val any) {
 	m.currVal.newNumber()
 	m.prevVal.newNumber()
@@ -169,7 +166,7 @@ func (m *PSMetric) initWithVal(val any) {
 	}
 }
 
-//Print is more for debugging, print what is inside metric
+//Print is more for debugging, print what is inside metric.
 func (m *PSMetric) Print() { fmt.Printf("%s: %d\n", m.Name, m.Change.Value()) }
 
 // MarshalJSON converts metrics to json
@@ -190,7 +187,7 @@ func (m *PSMetric) MarshalJSON() ([]byte, error) {
 	return json.Marshal(newM)
 }
 
-// Update updates metrics values
+// Update updates metrics values.
 func (m *PSMetric) Update(wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -207,7 +204,7 @@ func (m *PSMetric) Update(wg *sync.WaitGroup) {
 	m.Change = m.currVal.diff(&m.prevVal)
 }
 
-// MetricByName finds metrics in psutil using their name
+// MetricByName finds metrics in psutil using their name.
 func (m *PSMetric) MetricByName() {
 	v, _ := mem.VirtualMemory()
 
@@ -218,7 +215,7 @@ func (m *PSMetric) MetricByName() {
 	}
 }
 
-// psMetricCPU collects cpu metrics for initialization of the metrics
+// psMetricCPU collects cpu metrics for initialization of the metrics.
 func psMetricCPU(metricList *[]*PSMetric, k *string) {
 	c, _ := cpu.Times(true)
 	for i, usage := range c {

@@ -15,12 +15,13 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/driftprogramming/pgxpoolmock"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+
 	globalConf "github.com/maffka123/metricCollector/internal/config"
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/maffka123/metricCollector/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 var logger *zap.Logger = globalConf.InitLogger(true)

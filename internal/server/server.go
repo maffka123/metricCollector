@@ -1,9 +1,10 @@
 package server
 
 import (
+	"time"
+
 	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/maffka123/metricCollector/internal/storage"
-	"time"
 )
 
 /* DealWithDumps configures db dumping options: if store interval is >0 then it will be written asynchonousely

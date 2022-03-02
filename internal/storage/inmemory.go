@@ -3,10 +3,12 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	"go.uber.org/zap"
+
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
-	"go.uber.org/zap"
-	"time"
 )
 
 type InMemoryDB struct {

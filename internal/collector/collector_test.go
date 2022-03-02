@@ -6,8 +6,9 @@ import (
 
 	"sync"
 
-	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/maffka123/metricCollector/internal/models"
 )
 
 func TestMetric_Update(t *testing.T) {

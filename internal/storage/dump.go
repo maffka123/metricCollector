@@ -2,8 +2,9 @@ package storage
 
 import (
 	"encoding/json"
-	"github.com/go-errors/errors"
 	"os"
+
+	"github.com/go-errors/errors"
 )
 
 type producer struct {

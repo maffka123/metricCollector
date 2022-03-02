@@ -2,8 +2,9 @@ package config
 
 import (
 	"flag"
-	internal "github.com/maffka123/metricCollector/internal/config"
 	"time"
+
+	internal "github.com/maffka123/metricCollector/internal/config"
 )
 
 type Config struct {

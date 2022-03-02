@@ -6,18 +6,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/maffka123/metricCollector/internal/agent/config"
-	"github.com/maffka123/metricCollector/internal/agent/models"
-	"github.com/maffka123/metricCollector/internal/collector"
-	"go.uber.org/zap"
 	"log"
 	"net/http"
-	"sync"
-	"time"
-
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"sync"
+	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/maffka123/metricCollector/internal/agent/config"
+	"github.com/maffka123/metricCollector/internal/agent/models"
+	"github.com/maffka123/metricCollector/internal/collector"
 )
 
 type sendDataFunc func(context.Context, config.Config, *http.Client, []collector.MetricInterface, *zap.Logger) error

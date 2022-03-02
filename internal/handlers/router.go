@@ -6,8 +6,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/maffka123/metricCollector/internal/storage"
 	"go.uber.org/zap"
+
+	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 func MetricRouter(db storage.Repositories, key *string, logger *zap.Logger) (chi.Router, chan time.Time) {

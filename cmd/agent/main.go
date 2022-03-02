@@ -3,16 +3,17 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/maffka123/metricCollector/internal/agent"
-	"github.com/maffka123/metricCollector/internal/agent/config"
-	"github.com/maffka123/metricCollector/internal/agent/models"
-	globalConf "github.com/maffka123/metricCollector/internal/config"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/maffka123/metricCollector/internal/agent"
+	"github.com/maffka123/metricCollector/internal/agent/config"
+	"github.com/maffka123/metricCollector/internal/agent/models"
+	globalConf "github.com/maffka123/metricCollector/internal/config"
 )
 
 func main() {

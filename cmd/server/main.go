@@ -3,17 +3,19 @@ package main
 import (
 	"context"
 	"fmt"
-	globalConf "github.com/maffka123/metricCollector/internal/config"
-	"github.com/maffka123/metricCollector/internal/handlers"
-	"github.com/maffka123/metricCollector/internal/server"
-	"github.com/maffka123/metricCollector/internal/server/config"
-	"github.com/maffka123/metricCollector/internal/storage"
-	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"go.uber.org/zap"
+
+	globalConf "github.com/maffka123/metricCollector/internal/config"
+	"github.com/maffka123/metricCollector/internal/handlers"
+	"github.com/maffka123/metricCollector/internal/server"
+	"github.com/maffka123/metricCollector/internal/server/config"
+	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 func main() {

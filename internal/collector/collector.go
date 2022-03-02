@@ -3,15 +3,17 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/maffka123/metricCollector/internal/models"
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/mem"
 	"math/rand"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+
+	"github.com/maffka123/metricCollector/internal/models"
 )
 
 var runtimeMetricNameList = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction",

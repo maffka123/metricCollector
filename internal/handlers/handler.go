@@ -4,17 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/maffka123/metricCollector/internal/handlers/templates"
-	"github.com/maffka123/metricCollector/internal/models"
-	"github.com/maffka123/metricCollector/internal/storage"
-	"go.uber.org/zap"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"go.uber.org/zap"
+
+	"github.com/maffka123/metricCollector/internal/handlers/templates"
+	"github.com/maffka123/metricCollector/internal/models"
+	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 type MetricHandler struct {

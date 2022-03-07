@@ -44,7 +44,7 @@ func run() error {
 
 	do := make(chan int)
 	if cfg.Profile {
-		go agent.StartProfiling(do, "result2.pprof", "mem")
+		go agent.StartProfiling(do, "result.pprof", "mem")
 		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 	}

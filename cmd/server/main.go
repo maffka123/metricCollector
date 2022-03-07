@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -47,7 +46,7 @@ func main() {
 
 	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key, logger)
 
-	srv := &http.Server{Addr: cfg.Endpoint, Handler: r}
+	srv := server.NewServer(cfg.Endpoint, r)
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

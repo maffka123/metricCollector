@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
+	"net/http/httptest"
 
 	"encoding/json"
 
@@ -34,10 +36,20 @@ func Example() {
 	}()
 
 	// Start server
-	srv := NewServer(cfg.Endpoint, r)
-	go func() { log.Fatal(srv.ListenAndServe()) }()
+	srv := httptest.NewUnstartedServer(r)
+	srv.Listener.Close()
+	srv.Listener, err = net.Listen("tcp", "localhost:8086")
+	if err != nil {
+		log.Fatal("Could not start test server: " + err.Error())
+	}
+	srv.Start()
+	defer srv.Close()
 
-	client := &http.Client{}
+	// does not work in git-tests, start of goroutine is undefined
+	/*srv := NewServer(cfg.Endpoint, r)
+	go func() { log.Fatal(srv.ListenAndServe()) }()*/
+
+	client := srv.Client()
 
 	// Send gauge as a part of link
 	url := "http://localhost:8086/update/gauge/Alloc/0.5"

@@ -1,33 +1,52 @@
+// This is an agent, which is collecting system data.
 package main
 
 import (
 	"context"
 	"errors"
-	"github.com/maffka123/metricCollector/internal/agent"
-	"github.com/maffka123/metricCollector/internal/agent/config"
-	"github.com/maffka123/metricCollector/internal/agent/models"
-	globalConf "github.com/maffka123/metricCollector/internal/config"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/maffka123/metricCollector/internal/agent"
+	"github.com/maffka123/metricCollector/internal/agent/config"
+	"github.com/maffka123/metricCollector/internal/agent/models"
+	globalConf "github.com/maffka123/metricCollector/internal/config"
 )
 
+// I was told one should do it like that to be abe to test.
 func main() {
 	if err := run(); err != nil {
 		panic(errors.Unwrap(err))
 	}
 }
 
+// run implemets the wrole run logic of an agent.
+// Shortly:
+// - initialize config
+// - strt profiling if needed
+// - initialize logger
+// - initialize metrics first values
+// - start 2 goroutines for periodicar metric update and send them to the server
 func run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// for sending metrics to the server
 
 	cfg, err := config.InitConfig()
 
 	if err != nil {
 		return err
+	}
+
+	do := make(chan int)
+	if cfg.Profile {
+		go agent.StartProfiling(do, "result.pprof", "mem")
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
 	}
 
 	logger := globalConf.InitLogger(cfg.Debug)
@@ -38,8 +57,7 @@ func run() error {
 	client := &http.Client{}
 
 	// To be able to cancel tasks, make ctx and signal handler
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
@@ -77,13 +95,22 @@ metricList:
 	logger.Info("Agent started")
 
 	//if signal to qiut or error from other functions received, cancel ctx
+catchQuitORerror:
 	for {
 		select {
 		case <-quit:
-			return nil
+			break catchQuitORerror
 		case err = <-er:
 			return err
+		case <-ctx.Done():
+			break catchQuitORerror
 		}
 	}
 
+	logger.Info("Finishing")
+	if cfg.Profile {
+		do <- 1
+		<-do
+	}
+	return nil
 }

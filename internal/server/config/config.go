@@ -1,11 +1,14 @@
+// config holds configuration spezific for server.
 package config
 
 import (
 	"flag"
-	internal "github.com/maffka123/metricCollector/internal/config"
 	"time"
+
+	internal "github.com/maffka123/metricCollector/internal/config"
 )
 
+// Config type hold all configs for the server.
 type Config struct {
 	Endpoint      string        `env:"ADDRESS"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
@@ -16,6 +19,7 @@ type Config struct {
 	Debug         bool          `env:"METRIC_SERVER_DEBUG"`
 }
 
+// InitConfig allows to initialize config by first getting it from flags and then parsing environmental variables.
 func InitConfig() Config {
 	var cfg Config
 

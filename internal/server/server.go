@@ -1,10 +1,17 @@
 package server
 
 import (
+	"time"
+
+	"github.com/go-chi/chi/v5"
 	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/maffka123/metricCollector/internal/storage"
-	"time"
+	"net/http"
 )
+
+func NewServer(endpoint string, handlers chi.Router) *http.Server {
+	return &http.Server{Addr: endpoint, Handler: handlers}
+}
 
 /* DealWithDumps configures db dumping options: if store interval is >0 then it will be written asynchonousely
 if store interavl is 0, dump will be triggered right after db change*/

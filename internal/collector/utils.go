@@ -1,7 +1,5 @@
 package collector
 
-import ()
-
 type any interface{}
 
 type number struct {

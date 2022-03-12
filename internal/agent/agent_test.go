@@ -7,12 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"log"
+
 	"github.com/caarlos0/env/v6"
-	"github.com/maffka123/metricCollector/internal/agent/config"
-	"github.com/maffka123/metricCollector/internal/collector"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"log"
+
+	"github.com/maffka123/metricCollector/internal/agent/config"
+	"github.com/maffka123/metricCollector/internal/collector"
 )
 
 var logger *zap.Logger = zap.NewExample()

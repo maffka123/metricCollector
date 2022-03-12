@@ -2,15 +2,17 @@ package storage
 
 import (
 	"fmt"
-	"github.com/caarlos0/env/v6"
-	globalConf "github.com/maffka123/metricCollector/internal/config"
-	"github.com/maffka123/metricCollector/internal/server/config"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	"log"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/caarlos0/env/v6"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+
+	globalConf "github.com/maffka123/metricCollector/internal/config"
+	"github.com/maffka123/metricCollector/internal/server/config"
 )
 
 var logger *zap.Logger = globalConf.InitLogger(true)

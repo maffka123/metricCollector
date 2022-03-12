@@ -2,15 +2,18 @@ package storage
 
 import (
 	"encoding/json"
-	"github.com/go-errors/errors"
 	"os"
+
+	"github.com/go-errors/errors"
 )
 
+// producer type to write json to file.
 type producer struct {
 	file    *os.File
 	encoder *json.Encoder
 }
 
+// NewProducer creates new producer.
 func NewProducer(filename string) (*producer, error) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
@@ -22,15 +25,18 @@ func NewProducer(filename string) (*producer, error) {
 	}, nil
 }
 
+// Close closes file.
 func (p *producer) Close() error {
 	return p.file.Close()
 }
 
+// consumer type to read from json file.
 type consumer struct {
 	file    *os.File
 	decoder *json.Decoder
 }
 
+// NewConsumer creates new consumer.
 func NewConsumer(fileName string) (*consumer, error) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {

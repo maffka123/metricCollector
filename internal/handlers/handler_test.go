@@ -15,12 +15,13 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/driftprogramming/pgxpoolmock"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+
 	globalConf "github.com/maffka123/metricCollector/internal/config"
 	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/maffka123/metricCollector/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 var logger *zap.Logger = globalConf.InitLogger(true)
@@ -59,9 +60,9 @@ func TestPostHandlerGouge(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				valueInDB:       1,
+				valueInDB:       0.5,
 			},
-			request: "/update/gauge/RandomValue/1",
+			request: "/update/gauge/RandomValue/0.5",
 		},
 		{
 			name: "gauge_handler_replace",
@@ -69,9 +70,9 @@ func TestPostHandlerGouge(t *testing.T) {
 			want: want{
 				applicationType: "text/plain",
 				statusCode:      200,
-				valueInDB:       2,
+				valueInDB:       1.3,
 			},
-			request: "/update/gauge/RandomValue/2",
+			request: "/update/gauge/RandomValue/1.3",
 		},
 	}
 	for _, tt := range tests {

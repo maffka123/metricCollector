@@ -6,8 +6,9 @@ import (
 
 	"sync"
 
-	"github.com/maffka123/metricCollector/internal/models"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/maffka123/metricCollector/internal/models"
 )
 
 func TestMetric_Update(t *testing.T) {
@@ -68,7 +69,6 @@ func TestGetAllMetrics(t *testing.T) {
 }
 
 func TestMetric_init(t *testing.T) {
-	memStats := startStats()
 	type fields struct {
 		Name string
 		Type string
@@ -82,9 +82,8 @@ func TestMetric_init(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metric{
-				Name:     tt.fields.Name,
-				Type:     tt.fields.Type,
-				memStats: memStats,
+				Name: tt.fields.Name,
+				Type: tt.fields.Type,
 			}
 			m.init()
 			assert.Equal(t, 0, m.prevVal.integer)

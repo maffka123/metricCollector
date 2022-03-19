@@ -1,4 +1,4 @@
-// agent models
+// Package models holds models for agent
 package models
 
 import (

@@ -1,4 +1,4 @@
-// handlers package collects routing methods for the API as well as handlers for all endpoints.
+// Package handlers package collects routing methods for the API as well as handlers for all endpoints.
 package handlers
 
 import (

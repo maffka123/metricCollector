@@ -202,7 +202,7 @@ func (mh *MetricHandler) PostHandlerReturn(key *string) http.HandlerFunc {
 		}
 
 		if m.Hash != "" {
-			err := m.CompareHash(*key)
+			err = m.CompareHash(*key)
 			if err != nil {
 				http.Error(w, "400 - Hashes do not agree", http.StatusBadRequest)
 				return

@@ -98,7 +98,7 @@ func (db *PGDB) SelectAll() ([]string, []string) {
 
 	for row.Next() {
 		var r counterRow
-		err := row.Scan(&r.name, &r.value)
+		err = row.Scan(&r.name, &r.value)
 		if err != nil {
 			db.log.Error("Select counter failed:", zap.Error(err))
 		}

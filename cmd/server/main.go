@@ -62,7 +62,6 @@ func main() {
 	}()
 
 	go server.DealWithDumps(&cfg, db, dbUpdated)
-
 	logger.Info("Start serving on", zap.String("endpoint name", cfg.Endpoint))
 	log.Fatal(srv.ListenAndServe())
 

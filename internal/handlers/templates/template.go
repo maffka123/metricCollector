@@ -1,4 +1,4 @@
-// holds htm template to be returned by one of the endpoints.
+// Package templates holds htm template to be returned by one of the endpoints.
 // I just did not find how to properly set path to .html files ^^
 package templates
 

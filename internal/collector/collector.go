@@ -1,4 +1,4 @@
-// collector is a packege that collects metrics from runtime and psutil.
+// Package collector is a packege that collects metrics from runtime and psutil.
 package collector
 
 import (

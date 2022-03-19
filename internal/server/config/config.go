@@ -1,4 +1,4 @@
-// config holds configuration spezific for server.
+// Package config holds configuration spezific for server.
 package config
 
 import (

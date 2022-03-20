@@ -1,5 +1,8 @@
+//go:build ignore
+// +build ignore
+
 /*
-Package static client implements different custom statisc linters, such as:
+Package static client implements different custom static linters, such as:
 
 - Standart linters from analysis/passes
 - Linters SA and ST from staticcheck

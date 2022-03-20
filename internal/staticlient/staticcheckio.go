@@ -1,5 +1,5 @@
-// Package staticcheckio implements all SA and ST checks from staticcheck
-package staticcheckio
+// Package staticlient implements all SA and ST checks from staticcheck
+package staticlient
 
 import (
 	"golang.org/x/tools/go/analysis"

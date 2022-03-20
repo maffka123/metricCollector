@@ -18,22 +18,19 @@ go run cmd/staticlient/main.go ./...
 package main
 
 import (
-	"github.com/maffka123/metricCollector/internal/staticlient/analysispasses"
-	"github.com/maffka123/metricCollector/internal/staticlient/own"
-	"github.com/maffka123/metricCollector/internal/staticlient/publicanalysizers"
-	"github.com/maffka123/metricCollector/internal/staticlient/staticcheckio"
+	"github.com/maffka123/metricCollector/internal/staticlient"
 	"golang.org/x/tools/go/analysis/multichecker"
 )
 
 func main() {
 
-	mychecks := staticcheckio.Staticcheckio()
-	ap := analysispasses.Analysispasses()
-	pu := publicanalysizers.Analyspublic()
+	mychecks := staticlient.Staticcheckio()
+	ap := staticlient.Analysispasses()
+	pu := staticlient.Analyspublic()
 
 	mychecks = append(mychecks, ap...)
 	mychecks = append(mychecks, pu...)
-	mychecks = append(mychecks, own.Analyzer)
+	mychecks = append(mychecks, staticlient.Analyzer)
 
 	multichecker.Main(
 		mychecks...,

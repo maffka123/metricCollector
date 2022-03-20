@@ -1,5 +1,5 @@
-// Package analysispasses implements some checks from analysis/passes lib
-package analysispasses
+// Package staticlient implements some checks from analysis/passes lib
+package staticlient
 
 import (
 	"golang.org/x/tools/go/analysis"

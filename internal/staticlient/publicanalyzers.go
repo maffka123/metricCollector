@@ -1,5 +1,5 @@
-// Package publicanalysizers implements couple of public code analyzers
-package publicanalysizers
+// Package staticlient implements couple of public code analyzers
+package staticlient
 
 import (
 	"github.com/bkielbasa/cyclop/pkg/analyzer"

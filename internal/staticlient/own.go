@@ -1,5 +1,5 @@
-// Package own is my personal check which prohibits usage of os.Exit in function main of package main
-package own
+// Package staticlient is my personal check which prohibits usage of os.Exit in function main of package main
+package staticlient
 
 import (
 	"go/ast"

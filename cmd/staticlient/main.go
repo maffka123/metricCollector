@@ -18,10 +18,10 @@ go run cmd/staticlient/main.go ./...
 package main
 
 import (
-	"github.com/maffka123/metricCollector/cmd/staticlient/analysispasses"
-	"github.com/maffka123/metricCollector/cmd/staticlient/own"
-	"github.com/maffka123/metricCollector/cmd/staticlient/publicanalysizers"
-	"github.com/maffka123/metricCollector/cmd/staticlient/staticcheckio"
+	"github.com/maffka123/metricCollector/internal/staticlient/analysispasses"
+	"github.com/maffka123/metricCollector/internal/staticlient/own"
+	"github.com/maffka123/metricCollector/internal/staticlient/publicanalysizers"
+	"github.com/maffka123/metricCollector/internal/staticlient/staticcheckio"
 	"golang.org/x/tools/go/analysis/multichecker"
 )
 

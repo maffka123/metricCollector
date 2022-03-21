@@ -1,4 +1,6 @@
 /*
+//go:build ignore
+// +build ignore
 Package static client implements different custom static linters, such as:
 
 - Standart linters from analysis/passes

@@ -35,7 +35,7 @@ func main() {
 // run implemets the wrole run logic of an agent.
 // Shortly:
 // - initialize config
-// - strt profiling if needed
+// - start profiling if needed
 // - initialize logger
 // - initialize metrics first values
 // - start 2 goroutines for periodicar metric update and send them to the server

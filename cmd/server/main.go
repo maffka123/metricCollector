@@ -18,6 +18,12 @@ import (
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
+var (
+	Version     string = "N/A"
+	BuildDate   string = "N/A"
+	BuildCommit string = "N/A"
+)
+
 // main implements all server logic.
 // Shortly:
 // - initialize config
@@ -28,6 +34,7 @@ import (
 // - start goroutine to make periodical db dumps
 // - start serving
 func main() {
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", Version, BuildDate, BuildCommit)
 	cfg := config.InitConfig()
 	logger := globalConf.InitLogger(cfg.Debug)
 	defer logger.Sync()
@@ -62,7 +69,6 @@ func main() {
 	}()
 
 	go server.DealWithDumps(&cfg, db, dbUpdated)
-
 	logger.Info("Start serving on", zap.String("endpoint name", cfg.Endpoint))
 	log.Fatal(srv.ListenAndServe())
 

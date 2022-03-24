@@ -1,4 +1,4 @@
-// storage holds all what is connected to data storage.
+// Package storage holds all what is connected to data storage.
 package storage
 
 import (

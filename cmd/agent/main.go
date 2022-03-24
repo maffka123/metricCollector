@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,8 +18,15 @@ import (
 	globalConf "github.com/maffka123/metricCollector/internal/config"
 )
 
+var (
+	Version     string = "N/A"
+	BuildDate   string = "N/A"
+	BuildCommit string = "N/A"
+)
+
 // I was told one should do it like that to be abe to test.
 func main() {
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", Version, BuildDate, BuildCommit)
 	if err := run(); err != nil {
 		panic(errors.Unwrap(err))
 	}
@@ -27,7 +35,7 @@ func main() {
 // run implemets the wrole run logic of an agent.
 // Shortly:
 // - initialize config
-// - strt profiling if needed
+// - start profiling if needed
 // - initialize logger
 // - initialize metrics first values
 // - start 2 goroutines for periodicar metric update and send them to the server

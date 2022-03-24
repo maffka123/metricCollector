@@ -1,4 +1,4 @@
-// models packaje to hold common models for both services.
+// Package models to hold common models for both services.
 package models
 
 import (

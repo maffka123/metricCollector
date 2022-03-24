@@ -1,4 +1,4 @@
-// config package usefull for both serivces here. It allows initialize configs in the same way for both.
+// Package config package usefull for both serivces here. It allows initialize configs in the same way for both.
 package config
 
 import (

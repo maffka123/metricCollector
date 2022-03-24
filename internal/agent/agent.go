@@ -1,5 +1,4 @@
-// agent implemets util methods spezific for agent.
-
+// Package agent implemets util methods spezific for agent.
 package agent
 
 import (
@@ -26,7 +25,7 @@ import (
 // sendDataFunc defines a function for sending data over http, it is neede for backoff.
 type sendDataFunc func(context.Context, config.Config, *http.Client, []collector.MetricInterface, *zap.Logger) error
 
-//initMetrics initializes list with all metrics of interest, send first values to the server.
+// InitMetrics initializes list with all metrics of interest, send first values to the server.
 func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch chan models.MetricList, logger *zap.Logger) {
 	metricList := collector.GetAllMetrics(&cfg.Key)
 	m := make([]collector.MetricInterface, len(metricList))
@@ -59,7 +58,7 @@ func InitPSMetrics(ctx context.Context, cfg config.Config, client *http.Client, 
 	ch <- a
 }
 
-//updateMetrics updates metrics from the list.
+// UpdateMetrics updates metrics from the list.
 func UpdateMetrics(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-chan time.Time, metricList []collector.MetricInterface, logger *zap.Logger) {
 
 	// update metrics in parallel
@@ -125,7 +124,7 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 	return nil
 }
 
-// sendAllData iterates over metrics list and sent them to the server.
+// SendAllData iterates over metrics list and sent them to the server.
 func SendAllData(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-chan time.Time, client *http.Client, metricList []collector.MetricInterface, er chan error, logger *zap.Logger) {
 
 	// loop for allowing context cancel

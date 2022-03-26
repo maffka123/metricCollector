@@ -25,3 +25,4 @@ keys/
 .idea
 .vscode
 .DS_Store
+*.json

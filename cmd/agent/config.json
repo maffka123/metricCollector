@@ -1,6 +1,0 @@
-{
-    "address": "localhost:80",
-    "report_interval": "1s",
-    "poll_interval": "1s",
-    "crypto_key": "/path/to/key.pem"
-}

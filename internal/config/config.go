@@ -4,21 +4,8 @@ package config
 import (
 	"log"
 
-	"github.com/caarlos0/env/v6"
 	"go.uber.org/zap"
 )
-
-// confObj intarface that allows to use any  config struct
-type confObj interface{}
-
-// GetConfig parses config options from environment
-func GetConfig(c confObj) error {
-	err := env.Parse(c)
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 // InitLogger initilizes and configures zap logger
 func InitLogger(debug bool) *zap.Logger {

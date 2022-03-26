@@ -1,8 +1,15 @@
 package handlers
 
 import (
+	"bytes"
 	"compress/gzip"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	//"encoding/base64"
 	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -50,10 +57,14 @@ func checkForJSON(next http.Handler) http.HandlerFunc {
 
 func unpackGZIP(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Content-Encoding") != "gzip" && r.Header.Get("Content-Encoding") != "" {
-			http.Error(w, "Only gzip encoding is allowed", http.StatusMethodNotAllowed)
-			return
-		} else if r.Header.Get("Content-Encoding") != "gzip" {
+		for _, b := range r.Header.Values("Content-Encoding") {
+			if b != "gzip" && b != "64base" {
+				http.Error(w, "Only gzip encoding is allowed", http.StatusMethodNotAllowed)
+				return
+			}
+		}
+		if len(r.Header.Values("Content-Encoding")) == 0 ||
+			(len(r.Header.Values("Content-Encoding")) == 1 && r.Header.Get("Content-Encoding") == "64base") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -64,6 +75,34 @@ func unpackGZIP(next http.Handler) http.HandlerFunc {
 			return
 		}
 		r.Body = rw
+		next.ServeHTTP(w, r)
+	})
+}
+
+func decodeRSA(next http.Handler, key rsa.PrivateKey) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, b := range r.Header.Values("Content-Encoding") {
+			if b != "gzip" && b != "64base" {
+				http.Error(w, "Only 64base encoding is allowed", http.StatusMethodNotAllowed)
+				return
+			}
+		}
+		if len(r.Header.Values("Content-Encoding")) == 0 ||
+			(len(r.Header.Values("Content-Encoding")) == 1 && r.Header.Get("Content-Encoding") == "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		hash := sha256.New()
+		drb, err := rsa.DecryptOAEP(hash, rand.Reader, &key, body, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBufferString(string(drb)))
 		next.ServeHTTP(w, r)
 	})
 }

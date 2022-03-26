@@ -6,10 +6,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	//"encoding/base64"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -105,12 +103,14 @@ func (rsaMW rsaMW) decodeRSA(next http.Handler) http.HandlerFunc {
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Fatal(err)
+			io.WriteString(w, err.Error())
+			return
 		}
 		hash := sha256.New()
 		drb, err := rsa.DecryptOAEP(hash, rand.Reader, rsaMW.key, body, nil)
 		if err != nil {
-			log.Fatal(err)
+			io.WriteString(w, err.Error())
+			return
 		}
 		r.Body = ioutil.NopCloser(bytes.NewBufferString(string(drb)))
 		next.ServeHTTP(w, r)

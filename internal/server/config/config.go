@@ -4,10 +4,14 @@ package config
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"io/ioutil"
+	"os"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/caarlos0/env/v6"
@@ -17,14 +21,15 @@ type rsaPrivKey rsa.PrivateKey
 
 // Config type hold all configs for the server.
 type Config struct {
-	Endpoint      string        `env:"ADDRESS"`
-	StoreInterval time.Duration `env:"STORE_INTERVAL"`
-	StoreFile     string        `env:"STORE_FILE"`
-	Restore       bool          `env:"RESTORE"`
+	Endpoint      string        `env:"ADDRESS" json:"address"`
+	StoreInterval time.Duration `env:"STORE_INTERVAL" json:"store_interval"`
+	StoreFile     string        `env:"STORE_FILE" json:"store_file"`
+	Restore       bool          `env:"RESTORE" json:"restore"`
 	Key           string        `env:"KEY"`
-	DBpath        string        `env:"DATABASE_DSN"`
+	DBpath        string        `env:"DATABASE_DSN" json:"database_dsn"`
 	Debug         bool          `env:"METRIC_SERVER_DEBUG"`
-	CryptoKey     rsaPrivKey    `env:"CRYPTO_KEY"`
+	CryptoKey     rsaPrivKey    `env:"CRYPTO_KEY" json:"crypto_key"`
+	configFile    string        `env:"CONFIG"`
 }
 
 func (v rsaPrivKey) String() string {
@@ -51,7 +56,7 @@ func (v *rsaPrivKey) Set(s string) error {
 }
 
 // InitConfig allows to initialize config by first getting it from flags and then parsing environmental variables.
-func InitConfig() Config {
+func InitConfig() (Config, error) {
 	var cfg Config
 
 	flag.StringVar(&cfg.Endpoint, "a", "localhost:8080", "server address as host:port")
@@ -61,14 +66,26 @@ func InitConfig() Config {
 	flag.StringVar(&cfg.Key, "k", "", "key for hash function")
 	flag.Var(&cfg.CryptoKey, "ck", "crypto key for asymmetric encoding")
 	flag.BoolVar(&cfg.Debug, "debug", true, "key for hash function")
+	flag.StringVar(&cfg.configFile, "c", "", "location of config.json file")
 
 	// find full options link here: https://github.com/jackc/pgx/blob/master/pgxpool/pool.go
 	flag.StringVar(&cfg.DBpath, "d", "", "path for connection with pg: postgres://postgres:pass@localhost:5432/test?pool_max_conns=10")
 
+	// config from env variables
 	flag.Parse()
-	GetConfig(&cfg)
 
-	return cfg
+	// config from flags
+	if err := GetConfig(&cfg); err != nil {
+		return cfg, err
+	}
+
+	// config from json file
+	if cfg.configFile != "" {
+		if err := parseConfigFile(&cfg); err != nil {
+			return cfg, err
+		}
+	}
+	return cfg, nil
 }
 
 func GetConfig(cfg *Config) error {
@@ -91,4 +108,51 @@ func rsaPrivKeyParser(s string) (interface{}, error) {
 		return nil, err
 	}
 	return rsaPrivKey(*privKey), nil
+}
+
+func parseConfigFile(cfg *Config) error {
+	jsonFile, err := os.Open(cfg.configFile)
+	if err != nil {
+		return err
+	}
+
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	if err := json.Unmarshal(byteValue, cfg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Config) UnmarshalJSON(data []byte) error {
+	type cAlias Config
+
+	aliasValue := &struct {
+		*cAlias
+		// переопределяем поле внутри анонимной структуры
+		StoreInterval string `json:"store_interval"`
+		CryptoKey     string `json:"crypto_key"`
+	}{
+		// задаём указатель на целевой объект
+		cAlias: (*cAlias)(c),
+	}
+	if err := json.Unmarshal(data, aliasValue); err != nil {
+		return err
+	}
+	intUnits := aliasValue.StoreInterval[len(aliasValue.StoreInterval)-1:]
+	if intUnits == "s" {
+		intVar, err := strconv.Atoi(aliasValue.StoreInterval[:len(aliasValue.StoreInterval)-1])
+		if err != nil {
+			return err
+		}
+		c.StoreInterval = time.Duration(intVar) * time.Second
+	} else {
+		return errors.New("unknown time units")
+	}
+
+	var cryptoKey rsaPrivKey
+	cryptoKey.Set(aliasValue.CryptoKey)
+	c.CryptoKey = cryptoKey
+
+	return nil
 }

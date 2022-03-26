@@ -35,7 +35,10 @@ var (
 // - start serving
 func main() {
 	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", Version, BuildDate, BuildCommit)
-	cfg := config.InitConfig()
+	cfg, err := config.InitConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 	logger := globalConf.InitLogger(cfg.Debug)
 	defer logger.Sync()
 

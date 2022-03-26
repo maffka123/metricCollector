@@ -5,25 +5,30 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"io/ioutil"
+	"os"
 	"reflect"
+	"strconv"
 	"time"
 
+	"encoding/json"
 	"github.com/caarlos0/env/v6"
 )
 
 // Config is a majoj config structure.
 type Config struct {
-	Endpoint       string        `env:"ADDRESS"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
+	Endpoint       string        `env:"ADDRESS" json:"address"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL" json:"report_interval"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL" json:"poll_interval"`
 	Retries        int           `env:"BACKOFF_RETRIES"`
 	Delay          time.Duration `env:"BACKOFF_DELAY"`
 	Key            string        `env:"KEY"`
 	Debug          bool          `env:"METRIC_SERVER_DEBUG"`
 	Profile        bool          `env:"METRIC_SERVER_PROFILE"`
-	CryptoKey      rsaPubKey     `env:"CRYPTO_KEY"`
+	CryptoKey      rsaPubKey     `env:"CRYPTO_KEY" json:"crypto_key"`
+	configFile     string        `env:"CONFIG"`
 }
 
 type rsaPubKey rsa.PublicKey
@@ -63,11 +68,21 @@ func InitConfig() (Config, error) {
 	flag.Var(&cfg.CryptoKey, "ck", "crypto key for asymmetric encoding")
 	flag.BoolVar(&cfg.Debug, "debug", true, "if debugging is needed")
 	flag.BoolVar(&cfg.Profile, "profile", false, "if profiling is needed")
+	flag.StringVar(&cfg.configFile, "c", "", "location of config.json file")
 
+	// config from env variables
 	flag.Parse()
-	err := GetConfig(&cfg)
-	if err != nil {
-		return Config{}, err
+
+	// config from flags
+	if err := GetConfig(&cfg); err != nil {
+		return cfg, err
+	}
+
+	// config from json file
+	if cfg.configFile != "" {
+		if err := parseConfigFile(&cfg); err != nil {
+			return cfg, err
+		}
 	}
 	return cfg, nil
 }
@@ -92,4 +107,63 @@ func rsaPubKeyParser(s string) (interface{}, error) {
 		return nil, err
 	}
 	return rsaPubKey(*pubkey), nil
+}
+
+func parseConfigFile(cfg *Config) error {
+	jsonFile, err := os.Open(cfg.configFile)
+	if err != nil {
+		return err
+	}
+
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	if err := json.Unmarshal(byteValue, cfg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Config) UnmarshalJSON(data []byte) error {
+	type cAlias Config
+
+	aliasValue := &struct {
+		*cAlias
+		// переопределяем поле внутри анонимной структуры
+		ReportInterval string `json:"report_interval"`
+		PollInterval   string `json:"poll_interval"`
+		CryptoKey      string `json:"crypto_key"`
+	}{
+		// задаём указатель на целевой объект
+		cAlias: (*cAlias)(c),
+	}
+	if err := json.Unmarshal(data, aliasValue); err != nil {
+		return err
+	}
+	intUnits := aliasValue.ReportInterval[len(aliasValue.ReportInterval)-1:]
+	if intUnits == "s" {
+		intVar, err := strconv.Atoi(aliasValue.ReportInterval[:len(aliasValue.ReportInterval)-1])
+		if err != nil {
+			return err
+		}
+		c.ReportInterval = time.Duration(intVar) * time.Second
+	} else {
+		return errors.New("unknown time units")
+	}
+
+	intUnits = aliasValue.PollInterval[len(aliasValue.PollInterval)-1:]
+	if intUnits == "s" {
+		intVar, err := strconv.Atoi(aliasValue.PollInterval[:len(aliasValue.PollInterval)-1])
+		if err != nil {
+			return err
+		}
+		c.PollInterval = time.Duration(intVar) * time.Second
+	} else {
+		return errors.New("unknown time units")
+	}
+
+	var cryptoKey rsaPubKey
+	cryptoKey.Set(aliasValue.CryptoKey)
+	c.CryptoKey = cryptoKey
+
+	return nil
 }

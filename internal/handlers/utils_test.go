@@ -250,7 +250,8 @@ func Test_decodeRSA(t *testing.T) {
 
 			request.Header.Add("Content-Encoding", "64base")
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(unpackGZIP(decodeRSA(tt.args.next, getPrivKey())))
+			rsaMW := NewRsaMW(rsa.PrivateKey(getPrivKey()))
+			h := http.HandlerFunc(unpackGZIP(rsaMW.decodeRSA(tt.args.next)))
 			h.ServeHTTP(w, request)
 			result := w.Result()
 			defer result.Body.Close()

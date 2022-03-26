@@ -51,7 +51,7 @@ func main() {
 
 	logger.Info("Init config: done")
 
-	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key, logger)
+	r, dbUpdated := handlers.MetricRouter(db, &cfg, logger)
 
 	srv := server.NewServer(cfg.Endpoint, r)
 

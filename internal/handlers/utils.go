@@ -79,7 +79,17 @@ func unpackGZIP(next http.Handler) http.HandlerFunc {
 	})
 }
 
-func decodeRSA(next http.Handler, key rsa.PrivateKey) http.HandlerFunc {
+type rsaMW struct {
+	key *rsa.PrivateKey
+}
+
+func NewRsaMW(key rsa.PrivateKey) rsaMW {
+	return rsaMW{
+		key: &key,
+	}
+}
+
+func (rsaMW rsaMW) decodeRSA(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, b := range r.Header.Values("Content-Encoding") {
 			if b != "gzip" && b != "64base" {
@@ -98,7 +108,7 @@ func decodeRSA(next http.Handler, key rsa.PrivateKey) http.HandlerFunc {
 			log.Fatal(err)
 		}
 		hash := sha256.New()
-		drb, err := rsa.DecryptOAEP(hash, rand.Reader, &key, body, nil)
+		drb, err := rsa.DecryptOAEP(hash, rand.Reader, rsaMW.key, body, nil)
 		if err != nil {
 			log.Fatal(err)
 		}

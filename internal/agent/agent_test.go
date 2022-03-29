@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
 	"log"
 
-	"github.com/caarlos0/env/v6"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
@@ -21,7 +21,7 @@ var logger *zap.Logger = zap.NewExample()
 
 func prepConf() config.Config {
 	var cfg config.Config
-	err := env.Parse(&cfg)
+	err := config.GetConfig(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,27 +76,43 @@ func Test_simpleBackoff(t *testing.T) {
 }
 
 func Test_sendData(t *testing.T) {
+
 	client := &http.Client{}
-	cfg := prepConf()
-	cfg.Retries = 3
-	cfg.Key = "test"
+
 	ctx := context.Background()
 
 	type args struct {
 		m []*collector.Metric
 	}
+	type settings struct {
+		retries   string
+		key       string
+		pathtokey string
+	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name     string
+		args     args
+		wantErr  bool
+		settings settings
 	}{
-		//{name: "test1", args: args{m: &collector.Metric{Name: "Alloc", Type: "gauge", Key: &cfg.Key}}},
-		{name: "test1", args: args{m: []*collector.Metric{{Name: "Count1", Type: "counter", Key: &cfg.Key}}}},
+
+		{name: "test1", args: args{m: []*collector.Metric{{Name: "Count1", Type: "counter"}}},
+			settings: settings{retries: "3", key: "test", pathtokey: "config/testdata/key.pem"},
+		},
+		{name: "test2", args: args{m: []*collector.Metric{{Name: "Count1", Type: "counter"}}},
+			settings: settings{retries: "3", key: "test", pathtokey: ""},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv("CRYPTO_KEY", tt.settings.pathtokey)
+			os.Setenv("BACKOFF_RETRIES", tt.settings.retries)
+			os.Setenv("KEY", tt.settings.key)
+			cfg := prepConf()
+
 			m := make([]collector.MetricInterface, len(tt.args.m))
 			for i := range tt.args.m {
+				tt.args.m[i].Key = &cfg.Key
 				m[i] = tt.args.m[i]
 			}
 			err := sendJSONData(ctx, cfg, client, m, logger)

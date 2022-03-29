@@ -35,7 +35,10 @@ var (
 // - start serving
 func main() {
 	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s\n", Version, BuildDate, BuildCommit)
-	cfg := config.InitConfig()
+	cfg, err := config.InitConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 	logger := globalConf.InitLogger(cfg.Debug)
 	defer logger.Sync()
 
@@ -51,7 +54,7 @@ func main() {
 
 	logger.Info("Init config: done")
 
-	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key, logger)
+	r, dbUpdated := handlers.MetricRouter(db, &cfg, logger)
 
 	srv := server.NewServer(cfg.Endpoint, r)
 

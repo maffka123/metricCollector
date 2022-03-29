@@ -17,6 +17,9 @@ import (
 
 	"go.uber.org/zap"
 
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"github.com/maffka123/metricCollector/internal/agent/config"
 	"github.com/maffka123/metricCollector/internal/agent/models"
 	"github.com/maffka123/metricCollector/internal/collector"
@@ -96,16 +99,24 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 		return err
 	}
 
+	// encode data
+	if cfg.CryptoKey.E != 0 {
+		metricToSend, err = encryptData(metricToSend, rsa.PublicKey(cfg.CryptoKey))
+		if err != nil {
+			logger.Error("Encryption failed", zap.Error(err))
+		}
+	}
+
 	// gzip data
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	gz.Write(metricToSend)
-	gz.Close()
+	buf := zipData(metricToSend)
 
 	// create a request
 	request, err := http.NewRequest(http.MethodPost, url, &buf)
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Content-Encoding", "gzip")
+	if cfg.CryptoKey.E != 0 {
+		request.Header.Add("Content-Encoding", "64base")
+	}
 
 	if err != nil {
 		logger.Error("request creation failed", zap.Error(err))
@@ -122,6 +133,30 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 
 	logger.Info("Sent data with status code", zap.String("code", response.Status))
 	return nil
+}
+
+func zipData(metricToSend []byte) bytes.Buffer {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	gz.Write(metricToSend)
+	gz.Close()
+	return buf
+}
+
+func encryptData(metricToSend []byte, key rsa.PublicKey) ([]byte, error) {
+	encryptedBytes, err := rsa.EncryptOAEP(
+		sha256.New(),
+		rand.Reader,
+		&key,
+		metricToSend,
+		nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return encryptedBytes, nil
+
 }
 
 // SendAllData iterates over metrics list and sent them to the server.

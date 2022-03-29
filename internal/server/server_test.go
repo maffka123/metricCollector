@@ -28,7 +28,7 @@ func Example() {
 
 	// Init in-memory db and flush dbupdated channel, otherwise it blocks everything
 	db := storage.Connect(&cfg, logger)
-	r, dbUpdated := handlers.MetricRouter(db, &cfg.Key, logger)
+	r, dbUpdated := handlers.MetricRouter(db, &cfg, logger)
 	go func() {
 		for {
 			<-dbUpdated

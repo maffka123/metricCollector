@@ -19,8 +19,10 @@ cmd/server/server
 
 # Dependency directories (remove the comment below to include it)
 vendor/
+keys/
 
 # IDEs directories
 .idea
 .vscode
 .DS_Store
+*.json

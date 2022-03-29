@@ -9,15 +9,18 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 
+	"crypto/rsa"
+	"github.com/maffka123/metricCollector/internal/server/config"
 	"github.com/maffka123/metricCollector/internal/storage"
 )
 
 // MetricRouter routes the API.
-func MetricRouter(db storage.Repositories, key *string, logger *zap.Logger) (chi.Router, chan time.Time) {
+func MetricRouter(db storage.Repositories, cfg *config.Config, logger *zap.Logger) (chi.Router, chan time.Time) {
 	dbUpdated := make(chan time.Time)
 
 	r := chi.NewRouter()
 	mh := NewMetricHandler(db, logger)
+	rsaMW := NewRsaMW(rsa.PrivateKey(cfg.CryptoKey))
 
 	// use inbuild middleware
 	r.Use(middleware.RequestID)
@@ -31,17 +34,17 @@ func MetricRouter(db storage.Repositories, key *string, logger *zap.Logger) (chi
 		r.Post("/*", func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "501 - Metric type unknown!", http.StatusNotImplemented)
 		})
-		r.Post("/", Conveyor(mh.PostHandlerUpdate(dbUpdated, key), checkForJSON, checkForPost, unpackGZIP))
+		r.Post("/", Conveyor(mh.PostHandlerUpdate(dbUpdated, &cfg.Key), checkForJSON, checkForPost, unpackGZIP))
 
 	})
 
 	r.Route("/value/", func(r chi.Router) {
 		r.Get("/{type}/{name}", mh.GetHandlerValue())
-		r.Post("/", Conveyor(mh.PostHandlerReturn(key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
+		r.Post("/", Conveyor(mh.PostHandlerReturn(&cfg.Key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
 	})
 
 	r.Get("/ping", mh.GetHandlerPing())
-	r.Post("/updates/", Conveyor(mh.PostHandlerUpdates(dbUpdated, key), checkForJSON, checkForPost, unpackGZIP))
+	r.Post("/updates/", Conveyor(mh.PostHandlerUpdates(dbUpdated, &cfg.Key), checkForJSON, checkForPost, rsaMW.decodeRSA, unpackGZIP))
 	r.Get("/", Conveyor(mh.GetAllNames(), packGZIP))
 
 	return r, dbUpdated

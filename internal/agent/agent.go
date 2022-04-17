@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -114,6 +115,8 @@ func sendJSONData(ctx context.Context, cfg config.Config, client *http.Client, m
 	request, err := http.NewRequest(http.MethodPost, url, &buf)
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Content-Encoding", "gzip")
+	request.Header.Add("X-Real-IP", GetOutboundIP().String())
+
 	if cfg.CryptoKey.E != 0 {
 		request.Header.Add("Content-Encoding", "64base")
 	}
@@ -248,4 +251,18 @@ func StartProfiling(ctx chan int, file string, what string) {
 
 	}
 	fmt.Println("collecting memory really done")
+}
+
+// Get preferred outbound ip of this machine
+// https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
+func GetOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP
 }

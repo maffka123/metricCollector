@@ -61,7 +61,8 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	//See example here: https://pkg.go.dev/net/http#example-Server.Shutdown
+	// See example here: https://pkg.go.dev/net/http#example-Server.Shutdown
+	// Gracefully Shutdown
 	go func() {
 		sig := <-quit
 		logger.Info(fmt.Sprintf("caught sig: %+v", sig))

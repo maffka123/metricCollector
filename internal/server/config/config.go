@@ -30,6 +30,7 @@ type Config struct {
 	Debug         bool          `env:"METRIC_SERVER_DEBUG"`
 	CryptoKey     rsaPrivKey    `env:"CRYPTO_KEY" json:"crypto_key"`
 	configFile    string        `env:"CONFIG"`
+	TrustedSubnet string        `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 func (v rsaPrivKey) String() string {
@@ -67,6 +68,7 @@ func InitConfig() (Config, error) {
 	flag.Var(&cfg.CryptoKey, "ck", "crypto key for asymmetric encoding")
 	flag.BoolVar(&cfg.Debug, "debug", true, "key for hash function")
 	flag.StringVar(&cfg.configFile, "c", "", "location of config.json file")
+	flag.StringVar(&cfg.configFile, "t", "", "ip of a trusted agent")
 
 	// find full options link here: https://github.com/jackc/pgx/blob/master/pgxpool/pool.go
 	flag.StringVar(&cfg.DBpath, "d", "", "path for connection with pg: postgres://postgres:pass@localhost:5432/test?pool_max_conns=10")

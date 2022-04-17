@@ -21,12 +21,14 @@ func MetricRouter(db storage.Repositories, cfg *config.Config, logger *zap.Logge
 	r := chi.NewRouter()
 	mh := NewMetricHandler(db, logger)
 	rsaMW := NewRsaMW(rsa.PrivateKey(cfg.CryptoKey))
+	mu := newMetricUtils(cfg)
 
 	// use inbuild middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(mu.checkTrusted)
 
 	r.Route("/update/", func(r chi.Router) {
 		r.Post("/gauge/*", Conveyor(mh.PostHandlerGouge(dbUpdated), checkForPost, checkForLength, unpackGZIP))
@@ -39,7 +41,7 @@ func MetricRouter(db storage.Repositories, cfg *config.Config, logger *zap.Logge
 	})
 
 	r.Route("/value/", func(r chi.Router) {
-		r.Get("/{type}/{name}", mh.GetHandlerValue())
+		r.Get("/{type}/{name}", Conveyor(mh.GetHandlerValue(), checkForGet))
 		r.Post("/", Conveyor(mh.PostHandlerReturn(&cfg.Key), checkForJSON, checkForPost, packGZIP, unpackGZIP))
 	})
 

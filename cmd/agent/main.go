@@ -106,6 +106,7 @@ catchQuitORerror:
 	for {
 		select {
 		case <-quit:
+			cancel()
 			break catchQuitORerror
 		case err = <-er:
 			return err

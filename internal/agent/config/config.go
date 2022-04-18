@@ -20,6 +20,7 @@ import (
 // Config is a majoj config structure.
 type Config struct {
 	Endpoint       string        `env:"ADDRESS" json:"address"`
+	EndpointGRPC   string        `env:"ADDRESS_GRPC" json:"address_grpc"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" json:"report_interval"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL" json:"poll_interval"`
 	Retries        int           `env:"BACKOFF_RETRIES"`
@@ -29,6 +30,7 @@ type Config struct {
 	Profile        bool          `env:"METRIC_SERVER_PROFILE"`
 	CryptoKey      rsaPubKey     `env:"CRYPTO_KEY" json:"crypto_key"`
 	configFile     string        `env:"CONFIG"`
+	Protocol       string        `env:"PROTOCOL"`
 }
 
 type rsaPubKey rsa.PublicKey
@@ -60,6 +62,7 @@ func InitConfig() (Config, error) {
 	var cfg Config
 
 	flag.StringVar(&cfg.Endpoint, "a", "127.0.0.1:8080", "server address as host:port")
+	flag.StringVar(&cfg.EndpointGRPC, "ag", "localhost:8082", "server address as host:port")
 	flag.DurationVar(&cfg.PollInterval, "p", 2*time.Second, "how often to update metrics")
 	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "how often to send metrics to the server")
 	flag.IntVar(&cfg.Retries, "n", 3, "how many times should try to send metrics in case of error")
@@ -69,6 +72,7 @@ func InitConfig() (Config, error) {
 	flag.BoolVar(&cfg.Debug, "debug", true, "if debugging is needed")
 	flag.BoolVar(&cfg.Profile, "profile", false, "if profiling is needed")
 	flag.StringVar(&cfg.configFile, "c", "", "location of config.json file")
+	flag.StringVar(&cfg.Protocol, "pr", "http", "send data over http or grpc")
 
 	// config from env variables
 	flag.Parse()

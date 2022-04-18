@@ -22,6 +22,7 @@ type rsaPrivKey rsa.PrivateKey
 // Config type hold all configs for the server.
 type Config struct {
 	Endpoint      string        `env:"ADDRESS" json:"address"`
+	EndpointGRPC  string        `env:"ADDRESS_GRPC" json:"address_grpc"`
 	StoreInterval time.Duration `env:"STORE_INTERVAL" json:"store_interval"`
 	StoreFile     string        `env:"STORE_FILE" json:"store_file"`
 	Restore       bool          `env:"RESTORE" json:"restore"`
@@ -30,6 +31,7 @@ type Config struct {
 	Debug         bool          `env:"METRIC_SERVER_DEBUG"`
 	CryptoKey     rsaPrivKey    `env:"CRYPTO_KEY" json:"crypto_key"`
 	configFile    string        `env:"CONFIG"`
+	TrustedSubnet string        `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 func (v rsaPrivKey) String() string {
@@ -60,6 +62,7 @@ func InitConfig() (Config, error) {
 	var cfg Config
 
 	flag.StringVar(&cfg.Endpoint, "a", "localhost:8080", "server address as host:port")
+	flag.StringVar(&cfg.EndpointGRPC, "ag", "localhost:8082", "server address as host:port")
 	flag.BoolVar(&cfg.Restore, "r", true, "if to restore db from a dump")
 	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "how often to dump db into the file")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "name and location of the file path/to/file.json")
@@ -67,6 +70,7 @@ func InitConfig() (Config, error) {
 	flag.Var(&cfg.CryptoKey, "ck", "crypto key for asymmetric encoding")
 	flag.BoolVar(&cfg.Debug, "debug", true, "key for hash function")
 	flag.StringVar(&cfg.configFile, "c", "", "location of config.json file")
+	flag.StringVar(&cfg.TrustedSubnet, "t", "", "ip of a trusted agent")
 
 	// find full options link here: https://github.com/jackc/pgx/blob/master/pgxpool/pool.go
 	flag.StringVar(&cfg.DBpath, "d", "", "path for connection with pg: postgres://postgres:pass@localhost:5432/test?pool_max_conns=10")

@@ -57,11 +57,13 @@ func main() {
 	r, dbUpdated := handlers.MetricRouter(db, &cfg, logger)
 
 	srv := server.NewServer(cfg.Endpoint, r)
+	grpc, listener := server.NewGRPCServer(cfg.EndpointGRPC, db, cfg.TrustedSubnet, logger)
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	//See example here: https://pkg.go.dev/net/http#example-Server.Shutdown
+	// See example here: https://pkg.go.dev/net/http#example-Server.Shutdown
+	// Gracefully Shutdown
 	go func() {
 		sig := <-quit
 		logger.Info(fmt.Sprintf("caught sig: %+v", sig))
@@ -69,10 +71,13 @@ func main() {
 			// Error from closing listeners, or context timeout:
 			logger.Error("HTTP server Shutdown:", zap.Error(err))
 		}
+		grpc.GracefulStop()
+
 	}()
 
 	go server.DealWithDumps(&cfg, db, dbUpdated)
 	logger.Info("Start serving on", zap.String("endpoint name", cfg.Endpoint))
+	go func() { log.Fatal(grpc.Serve(listener)) }()
 	log.Fatal(srv.ListenAndServe())
 
 }

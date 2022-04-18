@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = "github.com/maffka123/metricCollector/proto";
+
+package grpc;
+
+message Metric {
+    string id = 1;            // metrics name
+	string m_type = 2 ;        // metrics type: can be counter or gauge
+	int64 delta = 3; // metrics values if type is counter
+	double value = 4; // metrics values if type is gauge
+	string hash = 5;
+  }
+
+  message GetMetricValueResponse {
+    int64 delta = 3; // metrics values if type is counter
+	double value = 4; // metrics values if type is gauge
+  }
+
+  message GetMetricNamesResponse {
+      repeated string names = 1;
+  }
+
+  message PostMetricUpdate {
+    Metric metric = 1;
+}
+
+message StdResponse {
+    string error = 2;
+  }
+
+
+  message UpdateMetricsRequest {
+      repeated Metric metrics = 1;
+  }
+
+  message Empty {
+}
+
+service Metrics {
+    rpc AddMetricGauge(Metric) returns (StdResponse);
+    rpc AddMetricCounter(Metric) returns (StdResponse);
+    rpc GetMetricValue(Metric) returns (GetMetricValueResponse);
+    rpc GetMetricNames(Empty) returns (GetMetricNamesResponse);
+    rpc UpdateMetric(Metric) returns (StdResponse);
+    rpc GetMetric(Metric) returns (Metric);
+    rpc UpdateMetrics(UpdateMetricsRequest) returns (StdResponse);
+  }

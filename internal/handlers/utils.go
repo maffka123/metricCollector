@@ -168,7 +168,7 @@ func Conveyor(h http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
 func (mu *metricUtils) checkTrusted(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if mu.cfg.TrustedSubnet != "" {
-			b, err := ifIPinCIDR(mu.cfg.TrustedSubnet, r.Header.Get("X-Real-IP"))
+			b, err := IfIPinCIDR(mu.cfg.TrustedSubnet, r.Header.Get("X-Real-IP"))
 			if err != nil {
 				http.Error(w, fmt.Sprintf("IP address could not be parsed: %s", err), http.StatusForbidden)
 				return
@@ -185,7 +185,7 @@ func (mu *metricUtils) checkTrusted(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func ifIPinCIDR(cidr string, ipStr string) (*bool, error) {
+func IfIPinCIDR(cidr string, ipStr string) (*bool, error) {
 	network, err := netip.ParsePrefix(cidr)
 	if err != nil {
 		return nil, err

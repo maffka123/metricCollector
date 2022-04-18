@@ -21,9 +21,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+
 	"github.com/maffka123/metricCollector/internal/agent/config"
 	"github.com/maffka123/metricCollector/internal/agent/models"
 	"github.com/maffka123/metricCollector/internal/collector"
+	pb "github.com/maffka123/metricCollector/internal/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 // sendDataFunc defines a function for sending data over http, it is neede for backoff.
@@ -36,8 +40,13 @@ func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch
 	for i := range metricList {
 		m[i] = metricList[i]
 	}
+	var err error
+	if cfg.Protocol == "html" {
+		err = simpleBackoff(ctx, sendJSONData, cfg, client, m, logger)
+	} else if cfg.Protocol == "grpc" {
+		err = simpleBackoff(ctx, sendGRPCData, cfg, client, m, logger)
+	}
 
-	err := simpleBackoff(ctx, sendJSONData, cfg, client, m, logger)
 	if err != nil {
 		ch <- models.MetricList{MetricList: nil, Err: err}
 	}
@@ -53,8 +62,13 @@ func InitPSMetrics(ctx context.Context, cfg config.Config, client *http.Client, 
 	for i := range metricList {
 		m[i] = metricList[i]
 	}
+	var err error
+	if cfg.Protocol == "html" {
+		err = simpleBackoff(ctx, sendJSONData, cfg, client, m, logger)
+	} else if cfg.Protocol == "grpc" {
+		err = simpleBackoff(ctx, sendGRPCData, cfg, client, m, logger)
+	}
 
-	err := simpleBackoff(ctx, sendJSONData, cfg, client, m, logger)
 	if err != nil {
 		ch <- models.MetricList{MetricList: nil, Err: err}
 	}
@@ -173,7 +187,13 @@ func SendAllData(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-c
 			// do not allow metrics to be updated while they are being sent
 			cond.Lock()
 			fmt.Println("Sending all metrics")
-			err := simpleBackoff(ctx, sendJSONData, cfg, client, metricList, logger)
+			var err error
+			if cfg.Protocol == "html" {
+				err = simpleBackoff(ctx, sendJSONData, cfg, client, metricList, logger)
+			} else if cfg.Protocol == "grpc" {
+				err = simpleBackoff(ctx, sendGRPCData, cfg, client, metricList, logger)
+			}
+
 			if err != nil {
 				er <- err
 			}
@@ -265,4 +285,44 @@ func GetOutboundIP() net.IP {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
 	return localAddr.IP
+}
+
+//sendGRPCData sends metric in as grpc to the server.
+func sendGRPCData(ctx context.Context, cfg config.Config, client *http.Client, m []collector.MetricInterface, logger *zap.Logger) error {
+	conn, err := grpc.Dial(cfg.EndpointGRPC, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	// получаем переменную интерфейсного типа UsersClient,
+	// через которую будем отправлять сообщения
+	c := pb.NewMetricsClient(conn)
+
+	if err != nil {
+		logger.Error("JSON marshal failed", zap.Error(err))
+		return err
+	}
+
+	md := metadata.Pairs("x-real-ip", GetOutboundIP().String())
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	var ml []*pb.Metric
+	var a pb.Metric
+	for _, mm := range m {
+		switch metrics := mm.(type) {
+		case *collector.Metric:
+			a = pb.Metric{Id: metrics.Name, MType: metrics.Type, Delta: *metrics.Change.IntValue(), Value: *metrics.Change.FloatValue()}
+		case *collector.PSMetric:
+			a = pb.Metric{Id: metrics.Name, MType: metrics.Type, Delta: *metrics.Change.IntValue(), Value: *metrics.Change.FloatValue()}
+		}
+		ml = append(ml, &a)
+	}
+
+	r, err := c.UpdateMetrics(ctx, &pb.UpdateMetricsRequest{Metrics: ml})
+	if err != nil {
+		logger.Error("Sending GRPC metric failed", zap.Error(err))
+	}
+
+	logger.Info("Sent data with status code", zap.String("code", r.Error))
+	return nil
 }

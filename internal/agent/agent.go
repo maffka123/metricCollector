@@ -41,7 +41,7 @@ func InitMetrics(ctx context.Context, cfg config.Config, client *http.Client, ch
 		m[i] = metricList[i]
 	}
 	var err error
-	if cfg.Protocol == "html" {
+	if cfg.Protocol == "http" {
 		err = simpleBackoff(ctx, sendJSONData, cfg, client, m, logger)
 	} else if cfg.Protocol == "grpc" {
 		err = simpleBackoff(ctx, sendGRPCData, cfg, client, m, logger)
@@ -63,7 +63,7 @@ func InitPSMetrics(ctx context.Context, cfg config.Config, client *http.Client, 
 		m[i] = metricList[i]
 	}
 	var err error
-	if cfg.Protocol == "html" {
+	if cfg.Protocol == "http" {
 		err = simpleBackoff(ctx, sendJSONData, cfg, client, m, logger)
 	} else if cfg.Protocol == "grpc" {
 		err = simpleBackoff(ctx, sendGRPCData, cfg, client, m, logger)
@@ -188,7 +188,7 @@ func SendAllData(ctx context.Context, cfg config.Config, cond *sync.Mutex, t <-c
 			cond.Lock()
 			fmt.Println("Sending all metrics")
 			var err error
-			if cfg.Protocol == "html" {
+			if cfg.Protocol == "http" {
 				err = simpleBackoff(ctx, sendJSONData, cfg, client, metricList, logger)
 			} else if cfg.Protocol == "grpc" {
 				err = simpleBackoff(ctx, sendGRPCData, cfg, client, metricList, logger)
